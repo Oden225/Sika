@@ -1,0 +1,45 @@
+/* Composant de code de vérification (skill auth-otp-deck). Couleurs : variables de css/style.css. */
+@property --a{syntax:'<angle>';inherits:false;initial-value:0deg}
+@property --sweep{syntax:'<percentage>';inherits:false;initial-value:0%}
+
+.auth{background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:28px 20px 24px;text-align:center;box-shadow:0 20px 50px -24px rgba(0,0,0,.35)}
+.grab{width:36px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 18px}
+.otp-title{font-size:20px;font-weight:800;letter-spacing:-.01em;margin:0}
+.otp-sub{font-size:13.5px;color:var(--muted);margin:6px 0 0;min-height:1.4em}
+.otp-sub b{color:var(--text);font-weight:700}
+.otp{position:relative;margin:26px auto 0;width:max-content;max-width:100%}
+.otp-input{position:absolute;inset:0;width:100%;height:100%;opacity:0;font-size:16px;border:0;background:transparent;color:transparent;caret-color:transparent;z-index:3;cursor:text}
+.otp-input[readonly]{cursor:default}
+.otp-deck{position:relative;display:grid;grid-template-columns:repeat(var(--n),minmax(0,48px));gap:clamp(6px,2vw,10px);justify-content:center}
+.cell{position:relative;aspect-ratio:4/5;border-radius:14px;background:linear-gradient(160deg,color-mix(in srgb,var(--cell) 88%,#fff 12%),var(--cell));
+  border:1.5px solid var(--cell-line);display:grid;place-items:center;transition:border-color .2s,box-shadow .25s;box-shadow:0 1px 2px rgba(0,0,0,.18),0 8px 16px -10px rgba(0,0,0,.45)}
+.dg{font-size:22px;font-weight:700;color:var(--cell-text);font-variant-numeric:tabular-nums}
+.caret{position:absolute;width:2px;height:40%;border-radius:1px;background:var(--accent);opacity:0}
+.cell.active{border-color:var(--accent);box-shadow:0 0 0 4px var(--cell-glow),0 8px 16px -10px rgba(0,0,0,.45)}
+.cell.active .caret{opacity:1;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+/* trait lumineux qui fait le tour de la cellule (saisie active, puis attente) */
+.cell::before,.cell::after{content:"";position:absolute;inset:-1.5px;border-radius:inherit;padding:2px;pointer-events:none;opacity:0;
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0)}
+.cell::before{background:conic-gradient(from var(--a),transparent 0 62%,var(--accent) 88%,transparent 100%)}
+.cell.active::before,.cell.tracing::before{opacity:1;animation:spin 1.4s linear infinite}
+.cell.tracing{border-color:color-mix(in srgb,var(--accent) 45%,var(--cell-line))}
+@keyframes spin{to{--a:360deg}}
+.cell::after{background:conic-gradient(from 0deg,var(--ok) var(--sweep),transparent 0);transition:--sweep .55s cubic-bezier(.65,0,.35,1),opacity .15s}
+.cell.ok::after{opacity:1;--sweep:100%}
+.cell.ok{border-color:var(--ok);box-shadow:0 0 0 5px var(--ok-glow),0 0 28px var(--ok-glow);transition:box-shadow .5s .35s,border-color .3s .35s}
+.cell.ok::before{opacity:0;animation:none}
+.cell.bad::before{background:conic-gradient(from var(--a),transparent 0 50%,var(--err) 85%,transparent 100%)}
+.cell.err{border-color:var(--err);box-shadow:0 0 0 4px var(--err-glow)}
+.check{position:absolute;width:44%;opacity:0;pointer-events:none}
+.check path{stroke:var(--ok);stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:24;stroke-dashoffset:24}
+.spark{position:absolute;left:50%;top:50%;width:6px;height:6px;margin:-3px;border-radius:50%;background:var(--ok);pointer-events:none;opacity:0}
+.otp-foot{margin-top:22px;font-size:13px;color:var(--muted);min-height:44px;display:flex;align-items:center;justify-content:center;gap:6px}
+.otp-foot button{font:inherit;font-weight:700;color:var(--text);background:none;border:0;padding:10px 6px;cursor:pointer;border-radius:8px}
+.otp-foot button:disabled{color:var(--muted);font-weight:600;cursor:default}
+.otp-done{display:none;flex-direction:column;align-items:center;gap:12px;margin-top:20px}
+.otp-done .lock{display:flex;align-items:center;gap:6px;color:var(--ok);font-size:13px;font-weight:700}
+.otp-done .lock svg{width:14px;height:14px}
+.otp-done button{font:inherit;font-weight:700;font-size:15px;padding:13px 34px;border-radius:14px;border:0;background:var(--btn-ok);color:var(--btn-ok-text);cursor:pointer;min-height:48px}
+.auth :focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}

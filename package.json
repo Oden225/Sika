@@ -1,7 +1,7 @@
 {
   "name": "sika",
-  "version": "1.0.0",
-  "description": "Application de suivi financier et de planification de l'épargne",
+  "version": "2.0.0",
+  "description": "Suivi financier et épargne, adapté à la Côte d'Ivoire",
   "private": true,
   "type": "module",
   "scripts": {

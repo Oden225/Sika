@@ -114,7 +114,87 @@ test("upcomingThisMonth", () => {
     { id: "c", start: "2026-10-12", frequency: "weekly", amount: 1 },
   ];
   assert.deepEqual(
-    calc.upcomingThisMonth(rules, "2026-10-11").map((r) => `${r.id}:${r.date}`),
+    calc.upcomingThisMonth(rules, "2026-10-11").map((r) => `${r.rule.id}:${r.date}`),
     ["c:2026-10-12", "c:2026-10-19", "c:2026-10-26", "a:2026-10-28"],
   );
+});
+
+test("fréquences bimestrielle et trimestrielle", () => {
+  assert.equal(calc.nthOccurrence("2026-11-15", "bimonthly", 1), "2027-01-15");
+  assert.equal(calc.nthOccurrence("2026-10-05", "quarterly", 2), "2027-04-05");
+});
+
+test("règles à confirmer : pas d'ajout automatique, échéances en attente", () => {
+  const rule = { id: "cie", type: "expense", amount: 15000, category: "electricite", note: "CIE", start: "2026-09-15", frequency: "monthly", auto: false, lastRun: null };
+  assert.equal(calc.generateRecurring([rule], "2026-10-20").transactions.length, 0);
+  assert.deepEqual(calc.pendingOccurrences(rule, "2026-10-20"), ["2026-09-15", "2026-10-15"]);
+  assert.deepEqual(calc.pendingOccurrences({ ...rule, lastRun: "2026-09-15" }, "2026-10-20"), ["2026-10-15"]);
+});
+
+test("upcomingPayments : retards à confirmer, échéance du jour, automatiques", () => {
+  const rules = [
+    { id: "cie", amount: 1, start: "2026-09-15", frequency: "monthly", auto: false, lastRun: "2026-09-15" },
+    { id: "loyer", amount: 1, start: "2026-01-11", frequency: "monthly", auto: false, lastRun: "2026-09-11" },
+    { id: "sal", amount: 1, start: "2026-01-31", frequency: "monthly", lastRun: "2026-09-30" },
+    { id: "off", amount: 1, start: "2026-01-12", frequency: "monthly", paused: true },
+  ];
+  const items = calc.upcomingPayments(rules, "2026-10-20", 15).map((i) => `${i.rule.id}:${i.date}:${i.overdue ? "retard" : i.daysLeft}`);
+  assert.deepEqual(items, ["loyer:2026-10-11:retard", "cie:2026-10-15:retard", "sal:2026-10-31:11"]);
+  const today = calc.upcomingPayments([{ id: "x", amount: 1, start: "2026-10-20", frequency: "monthly", auto: false }], "2026-10-20", 5);
+  assert.deepEqual(today.map((i) => [i.date, i.daysLeft, i.overdue]), [["2026-10-20", 0, false]]);
+});
+
+test("averageMonthlyIncome ignore les mois sans revenu", () => {
+  const tx = [
+    { type: "income", amount: 200000, date: "2026-07-10" },
+    { type: "income", amount: 100000, date: "2026-09-02" },
+    { type: "income", amount: 999999, date: "2026-10-01" },
+  ];
+  assert.equal(calc.averageMonthlyIncome(tx, "2026-10", 3), 150000);
+  assert.equal(calc.averageMonthlyIncome([], "2026-10"), 0);
+});
+
+test("suggestedSaving et mobileMoneyFee", () => {
+  assert.equal(calc.suggestedSaving(47000, 10), 4500);
+  assert.equal(calc.suggestedSaving(48000, 10), 5000);
+  assert.equal(calc.mobileMoneyFee(50000, { rate: 1 }), 500);
+  assert.equal(calc.mobileMoneyFee(1000000, { rate: 1, cap: 4500 }), 4500);
+  assert.equal(calc.mobileMoneyFee(20000, { rate: 0 }), 0);
+});
+
+test("dettes", () => {
+  const debts = [
+    { direction: "lent", amount: 50000, repayments: [{ amount: 20000 }] },
+    { direction: "borrowed", amount: 30000, repayments: [] },
+    { direction: "lent", amount: 10000, repayments: [{ amount: 15000 }] },
+  ];
+  assert.equal(calc.debtRemaining(debts[0]), 30000);
+  assert.equal(calc.debtRemaining(debts[2]), 0);
+  assert.deepEqual(calc.debtTotals(debts), { owedToMe: 30000, iOwe: 30000 });
+});
+
+test("tontine : cagnotte, calendrier, tour en cours, mon tour", () => {
+  const t = { amount: 20000, frequency: "monthly", start: "2026-08-05", members: ["Awa", "Moi", "Koffi", "Adjoua"], myIndex: 1, paid: { 0: [0, 1, 2, 3] } };
+  assert.equal(calc.tontinePot(t), 80000);
+  assert.deepEqual(calc.tontineSchedule(t).map((r) => r.date), ["2026-08-05", "2026-09-05", "2026-10-05", "2026-11-05"]);
+  assert.equal(calc.tontineCurrentRound(t, "2026-10-11").round.index, 3);
+  assert.equal(calc.tontineCurrentRound(t, "2026-10-05").round.index, 2);
+  assert.equal(calc.tontineCurrentRound(t, "2027-01-01").round.index, 3);
+  assert.equal(calc.tontineCurrentRound(t, "2026-07-01").round.index, 0);
+  assert.equal(calc.tontineMyRound(t).date, "2026-09-05");
+  assert.equal(calc.tontinePaidCount(t, 0), 4);
+});
+
+test("reminders : facture proche, dette due, cotisation tontine", () => {
+  const state = {
+    recurring: [
+      { id: "cie", note: "CIE", amount: 15000, type: "expense", start: "2026-10-12", frequency: "monthly", auto: false, remindDays: 2 },
+      { id: "loin", note: "Loin", amount: 1, type: "expense", start: "2026-10-25", frequency: "monthly", auto: false, remindDays: 2 },
+      { id: "auto", note: "Auto", amount: 1, type: "expense", start: "2026-10-12", frequency: "monthly" },
+    ],
+    debts: [{ id: "d", person: "Yao", direction: "lent", amount: 10000, due: "2026-10-12", repayments: [] }],
+    tontines: [{ id: "t", name: "Bureau", amount: 20000, frequency: "monthly", start: "2026-10-12", members: ["Moi", "A"], myIndex: 0, paid: {} }],
+  };
+  const r = calc.reminders(state, "2026-10-11");
+  assert.deepEqual(r.map((i) => `${i.kind}:${i.id}:${i.daysLeft}`).sort(), ["bill:cie:1", "debt:d:1", "tontine:t:1"]);
 });
