@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0f766e">
+  <title>Sika — Suivi financier</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1 class="brand">Sika<span>suivi &amp; épargne</span></h1>
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="dashboard" aria-selected="true">Tableau de bord</button>
+      <button role="tab" data-tab="transactions">Transactions</button>
+      <button role="tab" data-tab="budgets">Budgets</button>
+      <button role="tab" data-tab="goals">Objectifs</button>
+      <button role="tab" data-tab="simulator">Simulateur</button>
+      <button role="tab" data-tab="settings">Réglages</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- Tableau de bord -->
+    <section id="tab-dashboard" class="tab-panel">
+      <div class="month-picker">
+        <button class="icon" data-month-step="-1" aria-label="Mois précédent">‹</button>
+        <strong id="month-label"></strong>
+        <button class="icon" data-month-step="1" aria-label="Mois suivant">›</button>
+      </div>
+      <div class="kpis">
+        <div class="kpi"><span>Revenus</span><strong id="kpi-income" class="pos"></strong></div>
+        <div class="kpi"><span>Dépenses</span><strong id="kpi-expense" class="neg"></strong></div>
+        <div class="kpi"><span>Reste</span><strong id="kpi-balance"></strong></div>
+        <div class="kpi"><span>Taux d'épargne</span><strong id="kpi-rate"></strong></div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <h2>Dépenses par catégorie</h2>
+          <div id="chart-categories"></div>
+        </div>
+        <div class="card">
+          <h2>6 derniers mois</h2>
+          <div id="chart-months"></div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <h2>Règle 50 / 30 / 20</h2>
+          <p class="muted">Répartition indicative de vos revenus du mois.</p>
+          <div id="rule-503020"></div>
+        </div>
+        <div class="card">
+          <h2>Objectifs d'épargne</h2>
+          <div id="dashboard-goals"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Transactions -->
+    <section id="tab-transactions" class="tab-panel" hidden>
+      <div class="card">
+        <h2>Ajouter une transaction</h2>
+        <form id="tx-form" class="form-grid">
+          <label>Type
+            <select name="type">
+              <option value="expense">Dépense</option>
+              <option value="income">Revenu</option>
+            </select>
+          </label>
+          <label>Montant
+            <input name="amount" type="number" min="0" step="any" required inputmode="decimal">
+          </label>
+          <label>Catégorie
+            <select name="category"></select>
+          </label>
+          <label>Date
+            <input name="date" type="date" required>
+          </label>
+          <label class="span-2">Description
+            <input name="note" type="text" maxlength="120" placeholder="ex. Marché du samedi">
+          </label>
+          <button type="submit" class="primary">Ajouter</button>
+        </form>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <h2>Historique</h2>
+          <select id="tx-filter" aria-label="Filtrer par mois"></select>
+        </div>
+        <div id="tx-list"></div>
+      </div>
+    </section>
+
+    <!-- Budgets -->
+    <section id="tab-budgets" class="tab-panel" hidden>
+      <div class="card">
+        <h2>Plafonds mensuels par catégorie</h2>
+        <p class="muted">Fixez un montant maximum par catégorie de dépense. Laissez vide pour ne pas suivre.</p>
+        <form id="budget-form" class="budget-grid"></form>
+      </div>
+    </section>
+
+    <!-- Objectifs -->
+    <section id="tab-goals" class="tab-panel" hidden>
+      <div class="card">
+        <h2>Nouvel objectif d'épargne</h2>
+        <form id="goal-form" class="form-grid">
+          <label class="span-2">Nom
+            <input name="name" required maxlength="60" placeholder="ex. Fonds d'urgence, Terrain, Études">
+          </label>
+          <label>Montant visé
+            <input name="target" type="number" min="1" step="any" required>
+          </label>
+          <label>Déjà épargné
+            <input name="saved" type="number" min="0" step="any" value="0">
+          </label>
+          <label>Date limite
+            <input name="deadline" type="date" required>
+          </label>
+          <label>Rendement annuel (%)
+            <input name="rate" type="number" min="0" max="50" step="0.1" value="0">
+          </label>
+          <button type="submit" class="primary">Créer l'objectif</button>
+        </form>
+      </div>
+      <div id="goal-list"></div>
+    </section>
+
+    <!-- Simulateur -->
+    <section id="tab-simulator" class="tab-panel" hidden>
+      <div class="card">
+        <h2>Simulateur d'épargne</h2>
+        <form id="sim-form" class="form-grid">
+          <label>Capital de départ <input name="initial" type="number" min="0" step="any" value="0"></label>
+          <label>Versement mensuel <input name="monthly" type="number" min="0" step="any" value="25000"></label>
+          <label>Rendement annuel (%) <input name="rate" type="number" min="0" max="50" step="0.1" value="3.5"></label>
+          <label>Durée (années) <input name="years" type="number" min="1" max="50" step="1" value="10"></label>
+        </form>
+        <div id="sim-result"></div>
+      </div>
+    </section>
+
+    <!-- Réglages -->
+    <section id="tab-settings" class="tab-panel" hidden>
+      <div class="card">
+        <h2>Devise</h2>
+        <form id="settings-form" class="form-grid">
+          <label>Symbole affiché
+            <input name="currency" maxlength="6" required>
+          </label>
+          <button type="submit" class="primary">Enregistrer</button>
+        </form>
+      </div>
+      <div class="card">
+        <h2>Sauvegarde</h2>
+        <p class="muted">Vos données restent sur cet appareil. Exportez-les régulièrement pour ne rien perdre.</p>
+        <div class="actions">
+          <button id="export-btn">Exporter (JSON)</button>
+          <button id="export-csv-btn">Exporter les transactions (CSV)</button>
+          <label class="button">Importer (JSON)<input id="import-input" type="file" accept="application/json" hidden></label>
+          <button id="reset-btn" class="danger">Tout effacer</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
