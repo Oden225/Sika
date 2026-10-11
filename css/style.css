@@ -88,6 +88,7 @@ button.danger { color: var(--neg); }
 button.icon { padding: .2rem .7rem; font-size: 1.2rem; }
 button.link { border: 0; background: none; padding: .2rem .4rem; color: var(--muted); }
 button.link:hover { color: var(--neg); }
+button.link[data-rec-action="toggle"]:hover { color: var(--accent); }
 
 .form-grid { display: grid; gap: .75rem; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); align-items: end; }
 .form-grid label, .budget-grid label { display: flex; flex-direction: column; gap: .25rem; font-size: .85rem; color: var(--muted); }
@@ -103,7 +104,18 @@ button.link:hover { color: var(--neg); }
 .tx-row:last-child { border-bottom: 0; }
 .tx-row .date { color: var(--muted); font-size: .85rem; }
 .tx-row .cat { font-size: .8rem; color: var(--muted); display: block; }
-.tx-row .amount { font-variant-numeric: tabular-nums; font-weight: 600; }
+.tx-row .amount { font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+@media (max-width: 480px) {
+  #rec-list .tx-row { grid-template-columns: 1fr auto; row-gap: .1rem; }
+  #rec-list .tx-row .date { grid-column: 1 / -1; font-size: .75rem; }
+  #rec-list .tx-row > :last-child { grid-column: 1 / -1; justify-self: end; }
+}
+.tx-row.paused { opacity: .55; }
+.rec-icon { color: var(--accent); margin-left: .3rem; font-size: .85em; }
+#rec-list { margin-top: 1rem; }
+.upcoming-head { display: flex; justify-content: space-between; align-items: baseline; gap: .5rem; flex-wrap: wrap; }
+.upcoming-list { margin: .5rem 0 0; padding: 0; list-style: none; font-size: .9rem; }
+.upcoming-list li { display: flex; justify-content: space-between; gap: .5rem; padding: .25rem 0; }
 .empty { color: var(--muted); text-align: center; padding: 1rem 0; }
 
 .bar-row { margin-bottom: .6rem; }
@@ -132,6 +144,6 @@ button.link:hover { color: var(--neg); }
 #toast {
   position: fixed; bottom: 1rem; left: 50%; transform: translateX(-50%) translateY(150%);
   background: var(--text); color: var(--bg); padding: .6rem 1rem; border-radius: 8px;
-  transition: transform .2s; pointer-events: none; max-width: calc(100% - 2rem);
+  transition: transform .2s, visibility .2s; pointer-events: none; visibility: hidden; max-width: calc(100% - 2rem);
 }
-#toast.show { transform: translateX(-50%) translateY(0); }
+#toast.show { transform: translateX(-50%) translateY(0); visibility: visible; }

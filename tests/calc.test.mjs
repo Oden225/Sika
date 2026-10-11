@@ -67,3 +67,54 @@ test("budgetRule et goalProgress", () => {
   assert.equal(calc.goalProgress({ target: 200, saved: 50 }), 0.25);
   assert.equal(calc.goalProgress({ target: 200, saved: 500 }), 1);
 });
+
+test("nthOccurrence : fin de mois, hebdomadaire et annuel", () => {
+  assert.equal(calc.nthOccurrence("2026-01-31", "monthly", 1), "2026-02-28");
+  assert.equal(calc.nthOccurrence("2026-01-31", "monthly", 2), "2026-03-31");
+  assert.equal(calc.nthOccurrence("2026-11-15", "monthly", 3), "2027-02-15");
+  assert.equal(calc.nthOccurrence("2026-12-28", "weekly", 1), "2027-01-04");
+  assert.equal(calc.nthOccurrence("2028-02-29", "yearly", 1), "2029-02-28");
+});
+
+test("occurrencesBetween respecte after, until et end", () => {
+  const rule = { start: "2026-07-25", frequency: "monthly" };
+  assert.deepEqual(calc.occurrencesBetween(rule, null, "2026-10-11"), ["2026-07-25", "2026-08-25", "2026-09-25"]);
+  assert.deepEqual(calc.occurrencesBetween(rule, "2026-08-25", "2026-10-25"), ["2026-09-25", "2026-10-25"]);
+  assert.deepEqual(calc.occurrencesBetween({ ...rule, end: "2026-08-31" }, null, "2026-12-31"), ["2026-07-25", "2026-08-25"]);
+  assert.deepEqual(calc.occurrencesBetween({ start: "2026-11-01", frequency: "monthly" }, null, "2026-10-11"), []);
+});
+
+test("nextOccurrence", () => {
+  const rule = { start: "2026-01-05", frequency: "monthly" };
+  assert.equal(calc.nextOccurrence(rule, "2026-10-11"), "2026-11-05");
+  assert.equal(calc.nextOccurrence({ ...rule, end: "2026-10-31" }, "2026-10-11"), null);
+});
+
+test("generateRecurring rattrape les échéances sans doublon", () => {
+  const rules = [
+    { id: "r1", type: "income", amount: 300000, category: "Salaire", note: "Salaire", start: "2026-08-28", frequency: "monthly" },
+    { id: "r2", type: "expense", amount: 80000, category: "Logement", note: "Loyer", start: "2026-10-05", frequency: "monthly", paused: true },
+  ];
+  const first = calc.generateRecurring(rules, "2026-10-11");
+  assert.deepEqual(first.transactions.map((t) => t.date), ["2026-08-28", "2026-09-28"]);
+  assert.equal(first.transactions[0].recurringId, "r1");
+  assert.equal(first.rules[0].lastRun, "2026-09-28");
+  assert.equal(first.rules[1], rules[1]);
+
+  const again = calc.generateRecurring(first.rules, "2026-10-27");
+  assert.equal(again.transactions.length, 0);
+  const later = calc.generateRecurring(first.rules, "2026-10-28");
+  assert.deepEqual(later.transactions.map((t) => t.date), ["2026-10-28"]);
+});
+
+test("upcomingThisMonth", () => {
+  const rules = [
+    { id: "a", start: "2026-01-28", frequency: "monthly", amount: 1 },
+    { id: "b", start: "2026-01-05", frequency: "monthly", amount: 1 },
+    { id: "c", start: "2026-10-12", frequency: "weekly", amount: 1 },
+  ];
+  assert.deepEqual(
+    calc.upcomingThisMonth(rules, "2026-10-11").map((r) => `${r.id}:${r.date}`),
+    ["c:2026-10-12", "c:2026-10-19", "c:2026-10-26", "a:2026-10-28"],
+  );
+});

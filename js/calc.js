@@ -91,3 +91,93 @@ export function goalProgress(goal) {
   if (goal.target <= 0) return 1;
   return Math.min(1, Math.max(0, goal.saved / goal.target));
 }
+
+// ---------- Transactions récurrentes ----------
+
+const pad2 = (n) => String(n).padStart(2, "0");
+const toISO = (y, m, d) => `${y}-${pad2(m + 1)}-${pad2(d)}`;
+
+/**
+ * Date ISO de la k-ième échéance (k = 0 : date de départ) d'une règle
+ * `weekly`, `monthly` ou `yearly`. Pour un 31 du mois, l'échéance tombe le
+ * dernier jour des mois plus courts (ex. 28 ou 29 février).
+ */
+export function nthOccurrence(start, frequency, k) {
+  const [y, m, d] = start.split("-").map(Number);
+  if (frequency === "weekly") {
+    const date = new Date(y, m - 1, d + 7 * k);
+    return toISO(date.getFullYear(), date.getMonth(), date.getDate());
+  }
+  const monthIndex = m - 1 + (frequency === "yearly" ? 12 * k : k);
+  const year = y + Math.floor(monthIndex / 12);
+  const month = ((monthIndex % 12) + 12) % 12;
+  const lastDay = new Date(year, month + 1, 0).getDate();
+  return toISO(year, month, Math.min(d, lastDay));
+}
+
+/**
+ * Échéances d'une règle strictement après `after` (ou depuis le départ si
+ * null) et jusqu'à `until` inclus, en respectant la date de fin éventuelle.
+ */
+export function occurrencesBetween(rule, after, until) {
+  const dates = [];
+  const limit = rule.end && rule.end < until ? rule.end : until;
+  for (let k = 0; k < 5000; k++) {
+    const date = nthOccurrence(rule.start, rule.frequency, k);
+    if (date > limit) break;
+    if (!after || date > after) dates.push(date);
+  }
+  return dates;
+}
+
+/** Prochaine échéance strictement après `after`, ou null si la règle est terminée. */
+export function nextOccurrence(rule, after) {
+  for (let k = 0; k < 5000; k++) {
+    const date = nthOccurrence(rule.start, rule.frequency, k);
+    if (rule.end && date > rule.end) return null;
+    if (date > after) return date;
+  }
+  return null;
+}
+
+/**
+ * Crée les transactions dues jusqu'à `today` pour les règles actives.
+ * Chaque règle mémorise `lastRun` (dernière échéance générée), ce qui évite
+ * les doublons et ne recrée pas une transaction supprimée à la main.
+ * Renvoie les nouvelles transactions (sans id) et les règles mises à jour.
+ */
+export function generateRecurring(rules, today) {
+  const transactions = [];
+  const updated = rules.map((rule) => {
+    if (rule.paused) return rule;
+    const dates = occurrencesBetween(rule, rule.lastRun || null, today);
+    if (!dates.length) return rule;
+    for (const date of dates) {
+      transactions.push({
+        type: rule.type,
+        amount: rule.amount,
+        category: rule.category,
+        date,
+        note: rule.note,
+        recurringId: rule.id,
+      });
+    }
+    return { ...rule, lastRun: dates[dates.length - 1] };
+  });
+  return { transactions, rules: updated };
+}
+
+/**
+ * Montants encore attendus d'ici la fin du mois de `today` (échéances
+ * postérieures à aujourd'hui), pour estimer le reste prévu du mois.
+ */
+export function upcomingThisMonth(rules, today) {
+  const [y, m] = today.split("-").map(Number);
+  const endOfMonth = toISO(y, m - 1, new Date(y, m, 0).getDate());
+  const items = [];
+  for (const rule of rules) {
+    if (rule.paused) continue;
+    for (const date of occurrencesBetween(rule, today, endOfMonth)) items.push({ ...rule, date });
+  }
+  return items.sort((a, b) => a.date.localeCompare(b.date));
+}

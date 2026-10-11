@@ -90,6 +90,7 @@ function renderDashboard() {
     : `<p class="empty">Aucune dépense ce mois-ci.</p>`;
 
   renderMonthsChart();
+  renderUpcoming(balance);
 
   // Règle 50/30/20
   const rule = calc.budgetRule(income);
@@ -139,6 +140,28 @@ function renderMonthsChart() {
     <div class="legend"><span><i style="background:var(--pos)"></i>Revenus</span><span><i style="background:var(--neg)"></i>Dépenses</span></div>`;
 }
 
+function renderUpcoming(balance) {
+  const box = $("#upcoming");
+  const upcoming = currentMonth === calc.monthKey(new Date()) ? calc.upcomingThisMonth(state.recurring, today()) : [];
+  box.hidden = !upcoming.length;
+  if (!upcoming.length) return;
+  const net = upcoming.reduce((s, r) => s + (r.type === "income" ? r.amount : -r.amount), 0);
+  const projected = balance + net;
+  box.innerHTML = `
+    <div class="upcoming-head">
+      <h2>À venir d'ici la fin du mois</h2>
+      <span>Reste prévu : <strong class="${projected >= 0 ? "pos" : "neg"}">${money(projected)}</strong></span>
+    </div>
+    <ul class="upcoming-list">
+      ${upcoming
+        .map(
+          (r) => `<li><span>${new Date(r.date + "T00:00:00").toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })} · ${escapeHtml(r.note)}</span>
+          <span class="${r.type === "income" ? "pos" : "neg"}">${r.type === "income" ? "+" : "−"}${money(r.amount)}</span></li>`,
+        )
+        .join("")}
+    </ul>`;
+}
+
 $$("[data-month-step]").forEach((b) =>
   b.addEventListener("click", () => {
     currentMonth = shiftMonth(currentMonth, Number(b.dataset.monthStep));
@@ -150,16 +173,15 @@ $$("[data-month-step]").forEach((b) =>
 
 const txForm = $("#tx-form");
 
-function fillCategorySelect() {
-  const type = txForm.type.value;
-  txForm.category.innerHTML = DEFAULT_CATEGORIES[type]
+function fillCategorySelect(form) {
+  form.category.innerHTML = DEFAULT_CATEGORIES[form.type.value]
     .map((c) => `<option>${escapeHtml(c)}</option>`)
     .join("");
 }
 
-txForm.type.addEventListener("change", fillCategorySelect);
+txForm.type.addEventListener("change", () => fillCategorySelect(txForm));
 txForm.date.value = today();
-fillCategorySelect();
+fillCategorySelect(txForm);
 
 txForm.addEventListener("submit", (e) => {
   e.preventDefault();
@@ -199,7 +221,7 @@ function renderTransactions() {
           (t) => `
       <div class="tx-row">
         <span class="date">${new Date(t.date + "T00:00:00").toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}</span>
-        <span>${escapeHtml(t.note || t.category)}<span class="cat">${escapeHtml(t.category)}</span></span>
+        <span>${escapeHtml(t.note || t.category)}${t.recurringId ? `<span class="rec-icon" title="Transaction récurrente">↻</span>` : ""}<span class="cat">${escapeHtml(t.category)}</span></span>
         <span class="amount ${t.type === "income" ? "pos" : "neg"}">${t.type === "income" ? "+" : "−"}${money(t.amount)}</span>
         <button class="link" data-del-tx="${t.id}" aria-label="Supprimer">✕</button>
       </div>`,
@@ -213,6 +235,101 @@ $("#tx-list").addEventListener("click", (e) => {
   const id = e.target.dataset.delTx;
   if (!id || !confirm("Supprimer cette transaction ?")) return;
   state.transactions = state.transactions.filter((t) => t.id !== id);
+  commit();
+});
+
+// ---------- Transactions récurrentes ----------
+
+const recForm = $("#rec-form");
+const FREQ_LABELS = { weekly: "chaque semaine", monthly: "chaque mois", yearly: "chaque année" };
+const shortDate = (iso) => new Date(iso + "T00:00:00").toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
+
+recForm.type.addEventListener("change", () => fillCategorySelect(recForm));
+recForm.start.value = today();
+fillCategorySelect(recForm);
+
+/** Ajoute les transactions récurrentes arrivées à échéance. Renvoie le nombre créé. */
+function applyRecurring() {
+  const { transactions, rules } = calc.generateRecurring(state.recurring, today());
+  state.recurring = rules;
+  for (const t of transactions) state.transactions.push({ id: uid(), ...t });
+  return transactions.length;
+}
+
+recForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const amount = Number(recForm.amount.value);
+  if (!(amount > 0)) return toast("Montant invalide");
+  const end = recForm.end.value || null;
+  if (end && end < recForm.start.value) return toast("La date de fin précède la première échéance");
+
+  const rule = {
+    id: uid(),
+    type: recForm.type.value,
+    amount,
+    category: recForm.category.value,
+    frequency: recForm.frequency.value,
+    start: recForm.start.value,
+    end,
+    note: recForm.note.value.trim() || recForm.category.value,
+    lastRun: null,
+  };
+
+  // Première échéance dans le passé : proposer de rattraper les échéances manquées.
+  const yesterday = isoDate(new Date(Date.now() - 864e5));
+  const past = calc.occurrencesBetween(rule, null, yesterday);
+  if (past.length && !confirm(`${past.length} échéance(s) sont déjà passées depuis le ${shortDate(rule.start)}. Les ajouter à l'historique ?`)) {
+    rule.lastRun = past[past.length - 1];
+  }
+
+  state.recurring.push(rule);
+  const created = applyRecurring();
+  recForm.amount.value = "";
+  recForm.note.value = "";
+  recForm.end.value = "";
+  commit();
+  toast(created ? `Programmée — ${created} transaction(s) ajoutée(s)` : "Transaction programmée");
+});
+
+function renderRecurring() {
+  const now = today();
+  $("#rec-list").innerHTML = state.recurring.length
+    ? state.recurring
+        .map((r) => {
+          const next = calc.nextOccurrence(r, now);
+          const status = r.paused ? "En pause" : next ? `Prochaine : ${shortDate(next)}` : "Terminée";
+          return `
+      <div class="tx-row ${r.paused ? "paused" : ""}">
+        <span class="date">${FREQ_LABELS[r.frequency]}</span>
+        <span>${escapeHtml(r.note)}<span class="cat">${escapeHtml(r.category)} · ${status}</span></span>
+        <span class="amount ${r.type === "income" ? "pos" : "neg"}">${r.type === "income" ? "+" : "−"}${money(r.amount)}</span>
+        <span>
+          <button class="link" data-rec-action="toggle" data-id="${r.id}">${r.paused ? "Reprendre" : "Pause"}</button>
+          <button class="link" data-rec-action="delete" data-id="${r.id}" aria-label="Supprimer" title="Supprimer">✕</button>
+        </span>
+      </div>`;
+        })
+        .join("")
+    : `<p class="empty">Aucune transaction récurrente.</p>`;
+}
+
+$("#rec-list").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-rec-action]");
+  if (!btn) return;
+  const rule = state.recurring.find((r) => r.id === btn.dataset.id);
+  if (!rule) return;
+  if (btn.dataset.recAction === "delete") {
+    if (!confirm(`Arrêter « ${rule.note} » ? Les transactions déjà enregistrées sont conservées.`)) return;
+    state.recurring = state.recurring.filter((r) => r !== rule);
+  } else if (rule.paused) {
+    // À la reprise, on ne rattrape pas les échéances tombées pendant la pause.
+    rule.paused = false;
+    const missed = calc.occurrencesBetween(rule, rule.lastRun, isoDate(new Date(Date.now() - 864e5)));
+    if (missed.length) rule.lastRun = missed[missed.length - 1];
+    applyRecurring();
+  } else {
+    rule.paused = true;
+  }
   commit();
 });
 
@@ -450,12 +567,20 @@ function render() {
   settingsForm.currency.value = state.settings.currency;
   renderDashboard();
   renderTransactions();
+  renderRecurring();
   renderBudgets();
   renderGoals();
   renderSimulator();
 }
 
+if (applyRecurring()) save(state);
 render();
+
+// L'application peut rester ouverte plusieurs jours : on vérifie les échéances au retour.
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && applyRecurring()) commit();
+});
+
 try {
   const saved = localStorage.getItem("sika:tab");
   if (saved && $(`#tab-${saved}`)) showTab(saved);

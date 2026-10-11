@@ -34,6 +34,7 @@
         <div class="kpi"><span>Reste</span><strong id="kpi-balance"></strong></div>
         <div class="kpi"><span>Taux d'épargne</span><strong id="kpi-rate"></strong></div>
       </div>
+      <div id="upcoming" class="card" hidden></div>
       <div class="grid-2">
         <div class="card">
           <h2>Dépenses par catégorie</h2>
@@ -82,6 +83,42 @@
           </label>
           <button type="submit" class="primary">Ajouter</button>
         </form>
+      </div>
+      <div class="card">
+        <h2>Transactions récurrentes</h2>
+        <p class="muted">Salaire, loyer, abonnements, tontine… Elles sont ajoutées automatiquement à chaque échéance, à l'ouverture de l'application.</p>
+        <form id="rec-form" class="form-grid">
+          <label>Type
+            <select name="type">
+              <option value="expense">Dépense</option>
+              <option value="income">Revenu</option>
+            </select>
+          </label>
+          <label>Montant
+            <input name="amount" type="number" min="0" step="any" required inputmode="decimal">
+          </label>
+          <label>Catégorie
+            <select name="category"></select>
+          </label>
+          <label>Fréquence
+            <select name="frequency">
+              <option value="monthly">Chaque mois</option>
+              <option value="weekly">Chaque semaine</option>
+              <option value="yearly">Chaque année</option>
+            </select>
+          </label>
+          <label>Première échéance
+            <input name="start" type="date" required>
+          </label>
+          <label>Fin (facultatif)
+            <input name="end" type="date">
+          </label>
+          <label class="span-2">Description
+            <input name="note" type="text" maxlength="120" placeholder="ex. Loyer, Salaire, Abonnement internet">
+          </label>
+          <button type="submit" class="primary">Programmer</button>
+        </form>
+        <div id="rec-list"></div>
       </div>
       <div class="card">
         <div class="card-head">

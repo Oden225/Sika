@@ -24,6 +24,7 @@ function emptyState() {
     transactions: [],
     goals: [],
     budgets: {},
+    recurring: [],
   };
 }
 
@@ -61,6 +62,9 @@ export function normalize(data) {
       ? data.goals.filter((g) => g && g.name && Number.isFinite(g.target))
       : [],
     budgets: data.budgets && typeof data.budgets === "object" ? data.budgets : {},
+    recurring: Array.isArray(data.recurring)
+      ? data.recurring.filter((r) => r && Number.isFinite(r.amount) && r.start && r.frequency)
+      : [],
   };
 }
 

@@ -7,6 +7,9 @@ Elle fonctionne entièrement dans le navigateur : **aucun compte, aucun serveur,
 
 - **Tableau de bord mensuel** : revenus, dépenses, reste à vivre, taux d'épargne, dépenses par catégorie, évolution sur 6 mois.
 - **Transactions** : saisie rapide des revenus et dépenses par catégorie, historique filtrable par mois.
+- **Transactions récurrentes** : salaire, loyer, abonnements, tontine… chaque semaine, chaque mois ou chaque année,
+  avec date de fin facultative. Elles sont ajoutées automatiquement à chaque échéance (à l'ouverture de l'application),
+  peuvent être mises en pause, et le tableau de bord affiche ce qui reste à venir d'ici la fin du mois avec le **reste prévu**.
 - **Budgets** : plafond mensuel par catégorie, avec alerte visuelle à 80 % puis en cas de dépassement.
 - **Objectifs d'épargne** : montant visé, date limite, rendement annuel éventuel.
   L'application calcule **combien mettre de côté chaque mois** pour atteindre l'objectif à temps.
