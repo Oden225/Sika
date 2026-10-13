@@ -8,4 +8,4 @@ export const SUPABASE_ANON_KEY =
 
 // Nombre de chiffres du code reçu par e-mail : doit correspondre au réglage
 // Supabase « Email OTP Length » (Authentication → Sign In / Providers → Email).
-export const OTP_LENGTH = 8;
+export const OTP_LENGTH = 6;
