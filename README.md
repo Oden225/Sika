@@ -58,8 +58,9 @@ Sans configuration, Sika garde les données sur le téléphone. Pour activer les
 2. **SQL Editor** → coller le contenu de [`supabase/schema.sql`](supabase/schema.sql) → **Run**
    (crée la table `sika_state` protégée : chacun ne voit que ses données).
 3. **Authentication → Sign In / Providers** : vérifier que *Email* est activé.
-4. **Authentication → Emails → Templates → Magic Link** : remplacer le contenu par un message
-   contenant le code, par exemple :
+4. **Authentication → Emails → Templates** : dans **les deux** modèles **Confirm signup** (première
+   connexion d'une adresse) et **Magic Link** (connexions suivantes), remplacer le contenu par un
+   message contenant le code, par exemple :
    `<h2>Votre code Sika</h2><p>Entrez ce code dans l'application : <b>{{ .Token }}</b></p>`
    (par défaut Supabase envoie un lien ; Sika utilise le **code à 6 chiffres**).
 5. **Authentication → URL Configuration** : *Site URL* = `https://oden225.github.io/Sika/`.
