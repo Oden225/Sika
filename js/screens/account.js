@@ -1,5 +1,6 @@
 import { esc, icon, toast, $ } from "../ui.js";
 import { createOtpDeck } from "../otp.js";
+import { OTP_LENGTH } from "../config.js";
 
 const OTP_HTML = `
   <section class="auth" aria-labelledby="otpTitle">
@@ -8,7 +9,7 @@ const OTP_HTML = `
     <p class="otp-sub"></p>
     <div class="otp">
       <label class="sr" for="otpInput">Code de vérification</label>
-      <input class="otp-input" id="otpInput" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" maxlength="6" spellcheck="false">
+      <input class="otp-input" id="otpInput" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" maxlength="${OTP_LENGTH}" spellcheck="false">
       <div class="otp-deck" aria-hidden="true"></div>
     </div>
     <div class="otp-foot"><span>Pas reçu ?</span><button type="button" class="otp-resend">Renvoyer</button></div>
@@ -84,7 +85,7 @@ export function account(ctx) {
     <section class="glass card-pad account-intro" data-step-email>
       <div class="big-ico">${icon("cloud")}</div>
       <h2>Retrouvez vos données partout</h2>
-      <p class="muted">Connectez-vous avec votre e-mail : nous vous envoyons un code à 6 chiffres. Pas de mot de passe à retenir.</p>
+      <p class="muted">Connectez-vous avec votre e-mail : nous vous envoyons un code à ${OTP_LENGTH} chiffres. Pas de mot de passe à retenir.</p>
       <form class="form" data-email-form novalidate>
         <label class="field"><span>Adresse e-mail</span><input name="email" type="email" inputmode="email" autocomplete="email" required placeholder="vous@exemple.com" value="${esc(ctx.ui.pendingEmail || "")}"></label>
         <button class="btn primary block">Recevoir le code</button>
@@ -101,7 +102,7 @@ export function account(ctx) {
         ctx.ui.holdRender = true;
         const masked = email.replace(/^(.{2}).*(@.*)$/, "$1•••$2");
         const otp = createOtpDeck(slot.querySelector(".auth"), {
-          length: 6,
+          length: OTP_LENGTH,
           texts: { sub: (n) => `Code à ${n} chiffres envoyé à <b>${esc(masked)}</b>. Regardez aussi vos spams.` },
           verify: (code) => cloud.verify(email, code),
           onResend: () => cloud.sendCode(email).catch(() => toast("Envoi impossible, réessayez")),
