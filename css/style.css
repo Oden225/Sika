@@ -673,3 +673,24 @@ body.onboarding .view { padding: 0 0 calc(24px + env(safe-area-inset-bottom)); m
 .toggles .link-muted { padding: 4px; }
 .goal-link { display: inline-flex; align-items: center; gap: 4px; margin-top: 6px; font-size: .8rem; font-weight: 700; color: var(--accent); }
 .goal-link .ico { width: 14px; height: 14px; }
+
+/* ---------- Installation de l'application ---------- */
+.install-banner { display: flex; align-items: center; gap: 12px; padding: 10px 10px 10px 12px; border-radius: var(--radius-sm); margin-bottom: 18px; }
+.install-banner img { border-radius: 12px; flex: none; }
+.install-banner > div { flex: 1; min-width: 0; }
+.install-banner b { display: block; font-size: .92rem; }
+.install-banner small { color: var(--muted); font-size: .76rem; }
+.install-banner .icon-btn { box-shadow: none; background: transparent; border-color: transparent; }
+.install-item { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px; border-radius: var(--radius-sm); margin-bottom: 14px; text-align: left; border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--glass-border)); }
+.install-item .qi { width: 40px; height: 40px; border-radius: 12px; }
+.install-sheet { display: grid; gap: 14px; }
+.install-hero { display: flex; align-items: center; gap: 12px; }
+.install-hero img { border-radius: 16px; box-shadow: var(--shadow); }
+.install-hero b { display: block; font-size: 1.1rem; }
+.install-hero small { color: var(--muted); }
+.install-lead { font-size: .92rem; }
+.install-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.install-steps li { display: flex; gap: 12px; align-items: flex-start; font-size: .9rem; padding: 12px; border-radius: 14px; background: var(--glass-strong); border: 1px solid var(--line); }
+.step-n { flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: .8rem; color: var(--on-accent); background: var(--accent-grad); }
+.ico.inline { width: 18px; height: 18px; vertical-align: -4px; color: var(--accent); }
+.kbd { display: inline-grid; place-items: center; min-width: 22px; padding: 0 4px; border-radius: 6px; background: var(--accent-soft); color: var(--accent); }

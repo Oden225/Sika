@@ -4,6 +4,7 @@ import { load, save, hasData } from "./store.js";
 import { cloud, initCloud, hasStoredSession } from "./cloud.js";
 import { $, $$, setCurrency, today, closeSheet, countUp } from "./ui.js";
 import { applyTheme, themeOf } from "./theme.js";
+import { initInstall } from "./install.js";
 import { openAddSheet } from "./sheets.js";
 import { home } from "./screens/home.js";
 import { calendar } from "./screens/calendar.js";
@@ -195,6 +196,10 @@ function runSplash() {
 // ---------- Démarrage ----------
 
 applyTheme(themeOf(state.settings));
+// L'installation devient possible (ou vient d'être faite) : on met à jour le bouton.
+initInstall(() => {
+  if (/^(#\/?)?$|^#\/plus$/.test(location.hash)) render();
+});
 checkDue();
 render();
 runSplash();

@@ -23,6 +23,11 @@
       } catch (e) {
         r.classList.add("no-splash");
       }
+      // Proposition d'installation de Chrome (Android), gardée pour le bouton « Installer ».
+      addEventListener("beforeinstallprompt", function (e) {
+        e.preventDefault();
+        window.__sikaInstall = e;
+      });
     })();
   </script>
   <link rel="manifest" href="manifest.webmanifest">

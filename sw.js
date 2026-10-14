@@ -2,7 +2,7 @@
 // Stratégie « réseau d'abord » : on sert toujours la dernière version en ligne,
 // et la copie en cache seulement si le réseau est indisponible.
 
-const CACHE = "sika-v9";
+const CACHE = "sika-v10";
 const SHELL = [
   "./",
   "index.html",
@@ -17,6 +17,7 @@ const SHELL = [
   "js/cloud.js",
   "js/config.js",
   "js/data.js",
+  "js/install.js",
   "js/otp.js",
   "js/sheets.js",
   "js/store.js",

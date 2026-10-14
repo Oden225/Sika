@@ -4,6 +4,7 @@ import { category, OPERATORS } from "../data.js";
 import { normalize } from "../store.js";
 import { esc, money, num, icon, catIcon, initialsIcon, fmtDate, fmtLong, dueBadge, today, toast, signed, toggle, $, $$ } from "../ui.js";
 import { ACCENTS, applyTheme, themeOf } from "../theme.js";
+import { installState, openInstallSheet } from "../install.js";
 import { openPaySheet, feesFor } from "../sheets.js";
 import { bindTxRows, txRow, monthOptions } from "./home.js";
 
@@ -28,6 +29,7 @@ export function more(ctx) {
       <div class="lr-main"><b>${esc(name || "Mon profil")}</b><small>${icon("cloud", "xs")} ${account}</small></div>
       ${cloud.user ? `<span class="badge ${cloud.status === "error" ? "late" : "ok"}">${cloud.status === "error" ? "Erreur synchro" : "Synchronisé"}</span>` : icon("next", "chev")}
     </a>
+    ${installState() !== "installed" ? `<button class="install-item glass" data-install-app><span class="qi" style="--q:var(--accent)">${icon("download")}</span><span class="lr-main"><b>Installer l'application</b><small>Sur l'écran d'accueil, en plein écran, même sans connexion</small></span>${icon("next", "chev")}</button>` : ""}
     <section class="block"><div class="list">
       ${item("#/tontines", "users", "#f97316", "Tontines", `${state.tontines.length} tontine(s)`)}
       ${item("#/dettes", "swap", "#7c3aed", "Dettes & prêts", owedToMe || iOwe ? `On me doit ${money(owedToMe)} · je dois ${money(iOwe)}` : "Argent prêté ou emprunté")}
@@ -40,6 +42,9 @@ export function more(ctx) {
       ${item("#/reglages", "settings", "#64748b", "Réglages", "Nom, frais Mobile Money, sauvegarde")}
     </div></section>
     <p class="muted center small">Sika · vos finances, simplement</p>`,
+    bind(root) {
+      $("[data-install-app]", root)?.addEventListener("click", openInstallSheet);
+    },
   };
 }
 

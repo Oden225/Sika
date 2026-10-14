@@ -1,7 +1,8 @@
 import * as calc from "../calc.js";
 import { category } from "../data.js";
-import { esc, money, num, bigMoney, countUp, icon, catIcon, dueBadge, fmtDate, fmtShort, freqLabel, monthLabel, monthShort, signed, today, $$ } from "../ui.js";
+import { esc, money, num, bigMoney, countUp, toast, icon, catIcon, dueBadge, fmtDate, fmtShort, freqLabel, monthLabel, monthShort, signed, today, $$ } from "../ui.js";
 import { openAddSheet, openTransactionSheet } from "../sheets.js";
+import { shouldOfferInstall, dismissInstall, openInstallSheet } from "../install.js";
 
 function greeting() {
   const h = new Date().getHours();
@@ -122,6 +123,14 @@ export function home(ctx) {
       ${icon("next")}
     </a>` : ""}
 
+    ${shouldOfferInstall() ? `
+    <div class="install-banner glass">
+      <img src="icons/icon-192.png" alt="" width="40" height="40">
+      <div><b>Installez Sika</b><small>Sur votre écran d'accueil, comme une vraie application</small></div>
+      <button class="pill" data-install-app>Installer</button>
+      <button class="icon-btn sm" data-install-later aria-label="Plus tard">${icon("close")}</button>
+    </div>` : ""}
+
     <section class="block">
       <div class="block-head"><h2>Prochains paiements</h2><a class="pill" href="#/calendrier">Voir tout ${icon("next")}</a></div>
       ${upcoming.length
@@ -136,6 +145,12 @@ export function home(ctx) {
         : `<div class="empty glass"><p>Aucune transaction pour l'instant. Touchez <b>+</b> pour noter une dépense ou un revenu.</p></div>`}
     </section>`,
     bind(root) {
+      root.querySelector("[data-install-app]")?.addEventListener("click", openInstallSheet);
+      root.querySelector("[data-install-later]")?.addEventListener("click", () => {
+        dismissInstall();
+        ctx.render();
+        toast("D'accord ! Vous pourrez installer Sika depuis le menu Plus.");
+      });
       root.querySelector("[data-month]").addEventListener("change", (e) => {
         ctx.ui.month = e.target.value;
         ctx.render();
