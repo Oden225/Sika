@@ -40,7 +40,11 @@ synchroniser les données avec un **compte en ligne** (connexion par code reçu 
   6 derniers mois, règle 50 / 30 / 20 ; **budgets** par catégorie (alerte à 80 % et au-delà de 100 %).
 - **Rappels** : cloche avec les paiements à confirmer ; notifications du téléphone (si autorisées) à
   l'ouverture de l'application.
-- **Sauvegarde** : export / import JSON, export CSV (Excel), thème clair / sombre automatique.
+- **Sauvegarde** : export / import JSON, export CSV (Excel).
+- **Apparence** (Réglages → Apparence) : mode automatique, clair ou sombre ; six couleurs
+  (Indigo, Or, Émeraude, Océan, Corail, Prune) ; effet verre désactivable pour les petits
+  téléphones ; animation d'ouverture « Sika » (la pièce, l'argent) jouée une fois par lancement,
+  désactivable et automatiquement ignorée si le téléphone demande de réduire les animations.
 
 ## Lancer en local
 

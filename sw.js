@@ -2,7 +2,7 @@
 // Stratégie « réseau d'abord » : on sert toujours la dernière version en ligne,
 // et la copie en cache seulement si le réseau est indisponible.
 
-const CACHE = "sika-v5";
+const CACHE = "sika-v7";
 const SHELL = [
   "./",
   "index.html",
@@ -20,6 +20,7 @@ const SHELL = [
   "js/otp.js",
   "js/sheets.js",
   "js/store.js",
+  "js/theme.js",
   "js/ui.js",
   "js/screens/account.js",
   "js/screens/analytics.js",
@@ -58,7 +59,11 @@ self.addEventListener("fetch", (e) => {
         }
         return res;
       })
-      .catch(() => caches.match(request, { ignoreSearch: true }).then((r) => r || caches.match("index.html"))),
+      // Hors connexion : la copie en cache ; la page d'accueil seulement pour une
+      // ouverture de page (jamais à la place d'un script ou d'une feuille de style).
+      .catch(() =>
+        caches.match(request, { ignoreSearch: true }).then((r) => r || (request.mode === "navigate" ? caches.match("index.html") : Response.error())),
+      ),
   );
 });
 

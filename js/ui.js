@@ -18,7 +18,49 @@ export const money = (n) => `${num(n)} ${esc(currency)}`;
 export const signed = (n, type) => `${type === "income" ? "+" : "−"}${money(n)}`;
 /** Montant mis en valeur : gros chiffres, devise en petit. */
 export const bigMoney = (n, cls = "") =>
-  `<span class="big-money ${cls}"><span class="n">${num(n)}</span><span class="cur">${esc(currency)}</span></span>`;
+  `<span class="big-money ${cls}" data-count="${Math.round(n || 0)}"><span class="n">${num(n)}</span><span class="cur">${esc(currency)}</span></span>`;
+
+let counted = false;
+
+/**
+ * Fait défiler les gros montants de 0 jusqu'à leur valeur (une seule fois par
+ * ouverture de l'application, juste après l'animation d'ouverture).
+ */
+export function countUp(root) {
+  if (counted) return;
+  counted = true;
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  for (const el of root.querySelectorAll(".big-money[data-count]")) {
+    const target = Number(el.dataset.count) || 0;
+    const out = el.querySelector(".n");
+    if (!out || target === 0) continue;
+    const start = performance.now();
+    const duration = 1100;
+    const step = (now) => {
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      out.textContent = num(target * eased);
+      if (t < 1) requestAnimationFrame(step);
+    };
+    out.textContent = num(0);
+    requestAnimationFrame(step);
+  }
+}
+
+/** Bouton en chargement : se rétracte en pastille avec trois points qui rebondissent. */
+export function setLoading(btn, on) {
+  if (on) {
+    btn.dataset.label = btn.innerHTML;
+    btn.style.width = `${btn.offsetWidth}px`;
+    btn.innerHTML = `<span class="load-dots" aria-label="Chargement"><i></i><i></i><i></i></span>`;
+    btn.classList.add("loading");
+    requestAnimationFrame(() => (btn.style.width = "92px"));
+  } else if (btn.classList.contains("loading")) {
+    btn.classList.remove("loading");
+    btn.style.width = "";
+    btn.innerHTML = btn.dataset.label || "";
+  }
+}
 export const pct = (n) => `${Math.round(n * 100)} %`;
 
 export const isoDate = (d) =>
@@ -103,6 +145,10 @@ const P = {
   download: '<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>',
   arrowUpRight: '<path d="M7 17 17 7M8 7h9v9"/>',
   search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  moon: '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',
+  auto: '<circle cx="12" cy="12" r="9"/><path d="M12 3v18" /><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/>',
+  palette: '<path d="M12 3a9 9 0 1 0 0 18c1.4 0 2-1 2-2 0-1.4-1-1.7-1-3 0-1 .8-2 2-2h2a4 4 0 0 0 4-4c0-4-4-7-9-7z"/><circle cx="7.5" cy="11" r="1.2" fill="currentColor"/><circle cx="10" cy="7" r="1.2" fill="currentColor"/><circle cx="15" cy="7.5" r="1.2" fill="currentColor"/>',
   logout: '<path d="M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4M10 17l5-5-5-5M15 12H3"/>',
 };
 

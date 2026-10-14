@@ -2,7 +2,8 @@ import * as calc from "../calc.js";
 import * as act from "../actions.js";
 import { category, OPERATORS } from "../data.js";
 import { normalize } from "../store.js";
-import { esc, money, num, icon, catIcon, initialsIcon, fmtDate, fmtLong, dueBadge, today, toast, signed, $, $$ } from "../ui.js";
+import { esc, money, num, icon, catIcon, initialsIcon, fmtDate, fmtLong, dueBadge, today, toast, signed, toggle, $, $$ } from "../ui.js";
+import { ACCENTS, applyTheme, themeOf } from "../theme.js";
 import { openPaySheet, feesFor } from "../sheets.js";
 import { bindTxRows, txRow, monthOptions } from "./home.js";
 
@@ -34,6 +35,7 @@ export function more(ctx) {
       ${item("#/budgets", "target", "#ef4444", "Budgets", "Plafonds par catégorie")}
       ${item("#/transactions", "list", "#0ea5e9", "Toutes les transactions", `${state.transactions.length} transaction(s)`)}
       ${item("#/simulateur", "piggy", "#14b8a6", "Simulateur d'épargne", "Intérêts composés")}
+      ${item("#/reglages", "palette", "#ec4899", "Apparence", "Thème clair ou sombre, couleur, animation")}
       ${item("#/reglages", "settings", "#64748b", "Réglages", "Nom, frais Mobile Money, sauvegarde")}
     </div></section>
     <p class="muted center small">Sika · vos finances, simplement</p>`,
@@ -128,6 +130,7 @@ export function settings(ctx) {
       <h1 class="top-title">Réglages</h1>
       <span class="top-spacer"></span>
     </header>
+    ${appearance(themeOf(s))}
     <form class="glass card-pad form" data-profile>
       <h2>Profil</h2>
       <div class="row-2">
@@ -167,6 +170,7 @@ export function settings(ctx) {
       </div>
     </section>`,
     bind(root) {
+      bindAppearance(ctx, root);
       $("[data-profile]", root).addEventListener("submit", (e) => {
         e.preventDefault();
         s.name = e.target.name.value.trim();
@@ -233,3 +237,49 @@ function download(name, content, type) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+
+// ---------- Apparence ----------
+
+function appearance(t) {
+  const mode = (v, ico, label) =>
+    `<label class="theme-mode"><input type="radio" name="mode" value="${v}" ${t.mode === v ? "checked" : ""}><span>${icon(ico)}${label}</span></label>`;
+  return `
+    <section class="glass card-pad appearance" data-appearance>
+      <h2>Apparence</h2>
+      <h3>Mode</h3>
+      <div class="theme-modes" role="radiogroup" aria-label="Mode d'affichage">
+        ${mode("auto", "auto", "Automatique")}${mode("light", "sun", "Clair")}${mode("dark", "moon", "Sombre")}
+      </div>
+      <h3 style="margin-top:16px">Couleur</h3>
+      <div class="swatches" role="radiogroup" aria-label="Couleur principale">
+        ${ACCENTS.map((a) => `<label class="swatch" style="--sw:${a.color}"><input type="radio" name="accent" value="${a.id}" ${t.accent === a.id ? "checked" : ""}><b>${icon("check")}</b>${esc(a.label)}</label>`).join("")}
+      </div>
+      <div class="toggle-row" style="margin-top:16px"><div><b>Effet verre</b><small>Désactivez-le si l'application rame sur votre téléphone</small></div>${toggle("glass", t.glass !== "lite", "Effet verre")}</div>
+      <div class="toggle-row"><div><b>Animation d'ouverture</b><small>La pièce Sika à chaque lancement</small></div>${toggle("splash", t.splash !== false, "Animation d'ouverture")}</div>
+      <div class="btn-row"><button type="button" class="btn ghost" data-replay>${icon("play")} Revoir l'animation</button></div>
+    </section>`;
+}
+
+function bindAppearance(ctx, root) {
+  const box = $("[data-appearance]", root);
+  const update = (patch) => {
+    const t = { ...themeOf(ctx.state.settings), ...patch };
+    ctx.state.settings.theme = t;
+    applyTheme(t);
+    ctx.commit();
+  };
+  box.addEventListener("change", (e) => {
+    const { name, value, checked } = e.target;
+    if (name === "mode" || name === "accent") update({ [name]: value });
+    if (name === "glass") update({ glass: checked ? "full" : "lite" });
+    if (name === "splash") update({ splash: checked });
+  });
+  $("[data-replay]", box).addEventListener("click", () => {
+    try {
+      sessionStorage.removeItem("sika:splash");
+    } catch {}
+    const t = themeOf(ctx.state.settings);
+    if (t.splash === false) update({ splash: true });
+    location.reload();
+  });
+}

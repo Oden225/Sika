@@ -1,4 +1,4 @@
-import { esc, icon, toast, $ } from "../ui.js";
+import { esc, icon, toast, setLoading, $ } from "../ui.js";
 import { createOtpDeck } from "../otp.js";
 import { OTP_LENGTH } from "../config.js";
 
@@ -65,7 +65,8 @@ export function account(ctx) {
       </section>
       <p class="muted pad-x small">Vos données restent aussi sur ce téléphone pour fonctionner sans connexion. Elles sont envoyées sur votre compte à chaque modification.</p>`,
       bind(root) {
-        $("[data-sync]", root).addEventListener("click", async () => {
+        $("[data-sync]", root).addEventListener("click", async (e) => {
+          setLoading(e.currentTarget, true);
           await cloud.syncNow();
           toast(cloud.status === "ok" ? "Synchronisé" : "Synchronisation impossible");
           ctx.render();
@@ -126,16 +127,14 @@ export function account(ctx) {
         const email = form.email.value.trim();
         if (!/^\S+@\S+\.\S+$/.test(email)) return toast("Adresse e-mail invalide");
         const btn = form.querySelector("button");
-        btn.disabled = true;
-        btn.textContent = "Envoi…";
+        setLoading(btn, true);
         try {
           await cloud.sendCode(email);
           ctx.ui.pendingEmail = email;
           showOtp(email);
         } catch (err) {
           toast(/rate|limit/i.test(err.message) ? "Trop de demandes : patientez une minute." : "Envoi impossible. Vérifiez le réseau.");
-          btn.disabled = false;
-          btn.textContent = "Recevoir le code";
+          setLoading(btn, false);
         }
       });
     },

@@ -7,16 +7,56 @@
   <meta name="theme-color" content="#0e0f1c" media="(prefers-color-scheme: dark)">
   <meta name="description" content="Sika : suivez vos dépenses, vos factures, vos tontines et planifiez votre épargne.">
   <title>Sika — Suivi financier</title>
+  <script>
+    // Thème appliqué avant l'affichage (évite un flash de couleurs) et choix de
+    // jouer ou non l'animation d'ouverture (une fois par ouverture de l'app).
+    (function () {
+      var r = document.documentElement;
+      try {
+        var t = JSON.parse(localStorage.getItem("sika:theme") || "{}");
+        if (t.mode === "light" || t.mode === "dark") r.dataset.theme = t.mode;
+        r.dataset.accent = t.accent || "indigo";
+        r.dataset.glass = t.glass === "lite" ? "lite" : "full";
+        var skip = t.splash === false || matchMedia("(prefers-reduced-motion: reduce)").matches || sessionStorage.getItem("sika:splash");
+        if (skip) r.classList.add("no-splash");
+        else sessionStorage.setItem("sika:splash", "1");
+      } catch (e) {
+        r.classList.add("no-splash");
+      }
+    })();
+  </script>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+  <!-- Police chargée sans bloquer l'affichage (connexions lentes) -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" media="print" onload="this.media='all'">
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/otp.css">
 </head>
 <body>
+  <!-- Animation d'ouverture : la pièce tourne, « SIKA » (l'argent) apparaît,
+       puis le rideau remonte en vague et dévoile l'application. -->
+  <div id="splash" aria-hidden="true">
+    <div class="splash-panel">
+      <div class="splash-center">
+        <div class="splash-coin">
+          <svg viewBox="0 0 120 120" aria-hidden="true">
+            <defs>
+              <radialGradient id="coinG" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="#fff2b8"/><stop offset=".45" stop-color="#f9c74f"/><stop offset="1" stop-color="#c47f12"/></radialGradient>
+            </defs>
+            <circle cx="60" cy="60" r="56" fill="url(#coinG)"/>
+            <circle cx="60" cy="60" r="45" fill="none" stroke="#9a5b07" stroke-opacity=".35" stroke-width="3"/>
+            <path d="M73 46c-2.6-6.4-8.7-10-15.6-10-9.4 0-15.7 5.5-15.7 12.9 0 16.5 32.8 9.4 32.8 26.6 0 7.9-6.9 14-17 14-8.2 0-14.8-4.1-17.6-11.8" fill="none" stroke="#7c2d12" stroke-width="8" stroke-linecap="round"/>
+          </svg>
+          <i class="coin-shine"></i>
+        </div>
+        <p class="splash-word"><span>S</span><span>I</span><span>K</span><span>A</span></p>
+        <p class="splash-tag">Votre argent, bien géré</p>
+      </div>
+    </div>
+  </div>
   <div class="bg" aria-hidden="true"><i></i><i></i><i></i></div>
   <main id="view" class="view"></main>
 

@@ -2,7 +2,8 @@ import * as calc from "./calc.js";
 import * as act from "./actions.js";
 import { load, save } from "./store.js";
 import { cloud, initCloud } from "./cloud.js";
-import { $, $$, setCurrency, today, closeSheet } from "./ui.js";
+import { $, $$, setCurrency, today, closeSheet, countUp } from "./ui.js";
+import { applyTheme, themeOf } from "./theme.js";
 import { openAddSheet } from "./sheets.js";
 import { home } from "./screens/home.js";
 import { calendar } from "./screens/calendar.js";
@@ -46,6 +47,7 @@ function commit() {
 /** Remplace tout l'état (import, effacement, données du compte). */
 function replaceState(next, { fromCloud = false } = {}) {
   state = next;
+  applyTheme(themeOf(state.settings));
   act.applyRecurring(state, today());
   save(state, { touch: !fromCloud });
   render();
@@ -150,10 +152,39 @@ document.addEventListener("visibilitychange", () => {
   cloud.pull();
 });
 
+// ---------- Animation d'ouverture ----------
+
+/** Fait remonter le rideau (après ~2 s ou au toucher), puis lance les compteurs. */
+function runSplash() {
+  const el = document.getElementById("splash");
+  if (!el) return;
+  if (getComputedStyle(el).display === "none") {
+    el.remove();
+    return;
+  }
+  let done = false;
+  const leave = () => {
+    if (done) return;
+    done = true;
+    el.classList.add("leave");
+    view.classList.remove("enter");
+    view.classList.add("reveal");
+    setTimeout(() => {
+      el.remove();
+      countUp(view);
+    }, 900);
+    setTimeout(() => view.classList.remove("reveal"), 1700);
+  };
+  el.addEventListener("click", leave);
+  setTimeout(leave, 2000);
+}
+
 // ---------- Démarrage ----------
 
+applyTheme(themeOf(state.settings));
 checkDue();
 render();
+runSplash();
 
 initCloud({
   getState: () => state,

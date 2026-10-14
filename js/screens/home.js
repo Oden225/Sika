@@ -1,6 +1,6 @@
 import * as calc from "../calc.js";
 import { category } from "../data.js";
-import { esc, money, num, bigMoney, icon, catIcon, dueBadge, fmtDate, fmtShort, freqLabel, monthLabel, monthShort, signed, today, $$ } from "../ui.js";
+import { esc, money, num, bigMoney, countUp, icon, catIcon, dueBadge, fmtDate, fmtShort, freqLabel, monthLabel, monthShort, signed, today, $$ } from "../ui.js";
 import { openAddSheet, openTransactionSheet } from "../sheets.js";
 
 function greeting() {
@@ -141,6 +141,8 @@ export function home(ctx) {
         ctx.render();
       });
       root.querySelector("[data-add]").addEventListener("click", () => openAddSheet(ctx, "expense"));
+      // Sans animation d'ouverture, les montants défilent dès l'affichage.
+      if (!document.getElementById("splash")) countUp(root);
       root.querySelector("[data-momo]").addEventListener("click", () => openAddSheet(ctx, "momo"));
       root.querySelector("[data-rule]")?.addEventListener("click", () => openAddSheet(ctx, "rule"));
       bindTxRows(ctx, root);
