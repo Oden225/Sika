@@ -126,13 +126,32 @@ async function verify(email, token) {
   }
 }
 
-async function signOut() {
+/**
+ * Déconnexion : les dernières modifications sont d'abord envoyées au compte,
+ * puis les données sont effacées de ce téléphone (elles restent sur le compte).
+ * Si l'envoi échoue, l'erreur « unsynced » laisse l'écran demander confirmation ;
+ * `force: true` déconnecte quand même.
+ */
+async function signOut({ force = false } = {}) {
+  clearTimeout(pushTimer);
+  if (cloud.user && (pending || cloud.status === "error" || cloud.status === "offline")) {
+    await push();
+    if (pending && !force) {
+      const err = new Error("Modifications non envoyées");
+      err.code = "unsynced";
+      throw err;
+    }
+  }
   const c = await client();
   await c.auth.signOut();
   cloud.user = null;
+  pending = false;
   try {
     localStorage.removeItem(LINK_KEY);
+    // Normalement retiré par la bibliothèque Supabase ; par précaution.
+    localStorage.removeItem(`sb-${new URL(SUPABASE_URL).hostname.split(".")[0]}-auth-token`);
   } catch {}
+  hooks.onSignedOut?.();
   setStatus("idle");
 }
 

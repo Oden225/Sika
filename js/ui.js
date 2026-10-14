@@ -90,7 +90,7 @@ export function dueBadge(date, ref = today()) {
   return "";
 }
 
-export const freqLabel = (f) => FREQUENCIES[f]?.label || f;
+export const freqLabel = (f) => FREQUENCIES[f]?.label || esc(f);
 export const freqUnit = (f) => FREQUENCIES[f]?.unit || "";
 
 /** Tuile d'icône de catégorie (emoji sur fond teinté). */

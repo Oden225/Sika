@@ -210,7 +210,12 @@ export function settings(ctx) {
       });
       $("[data-export]", root).addEventListener("click", () => download(`sika-sauvegarde-${today()}.json`, JSON.stringify(state, null, 2), "application/json"));
       $("[data-csv]", root).addEventListener("click", () => {
-        const qv = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+        // Une valeur commençant par = + - @ serait exécutée comme formule par Excel : on la neutralise.
+        const qv = (v) => {
+          let text = String(v ?? "");
+          if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`;
+          return `"${text.replace(/"/g, '""')}"`;
+        };
         const rows = ["date;type;categorie;montant;note;moyen"];
         for (const t of [...state.transactions].sort((a, b) => a.date.localeCompare(b.date))) {
           rows.push([t.date, t.type === "income" ? "revenu" : "depense", qv(category(t.category).label), t.amount, qv(t.note), qv(t.method || "")].join(";"));

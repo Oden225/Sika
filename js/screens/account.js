@@ -97,11 +97,19 @@ export function account(ctx) {
           toast(cloud.status === "ok" ? "Synchronisé" : "Synchronisation impossible");
           ctx.render();
         });
-        $("[data-logout]", root).addEventListener("click", async () => {
-          if (!confirm("Se déconnecter ? Les données restent sur ce téléphone.")) return;
-          await cloud.signOut();
-          ctx.render();
-          toast("Déconnecté");
+        $("[data-logout]", root).addEventListener("click", async (e) => {
+          if (!confirm("Se déconnecter ? Vos données restent sur votre compte et seront effacées de ce téléphone.")) return;
+          const btn = e.currentTarget;
+          setLoading(btn, true);
+          try {
+            await cloud.signOut();
+          } catch (err) {
+            setLoading(btn, false);
+            if (err.code !== "unsynced") return toast("Déconnexion impossible, réessayez");
+            if (!confirm("Vos dernières modifications n'ont pas pu être envoyées (pas de connexion ?). Si vous vous déconnectez maintenant, elles seront perdues. Se déconnecter quand même ?")) return;
+            await cloud.signOut({ force: true });
+          }
+          toast("Déconnecté : les données ont été effacées de ce téléphone");
         });
       },
     };

@@ -1,6 +1,6 @@
 import * as calc from "./calc.js";
 import * as act from "./actions.js";
-import { load, save, hasData } from "./store.js";
+import { load, save, hasData, normalize } from "./store.js";
 import { cloud, initCloud, hasStoredSession } from "./cloud.js";
 import { $, $$, setCurrency, today, closeSheet, countUp } from "./ui.js";
 import { applyTheme, themeOf } from "./theme.js";
@@ -207,6 +207,19 @@ runSplash();
 initCloud({
   getState: () => state,
   applyRemote: (data) => replaceState(data, { fromCloud: true }),
+  // Déconnexion : les données de ce téléphone sont effacées (elles restent sur le compte),
+  // pour qu'une autre personne qui se connecte ensuite ne les récupère pas.
+  onSignedOut: () => {
+    const theme = state.settings.theme;
+    state = normalize({ version: 2, settings: theme ? { theme } : {} });
+    save(state, { touch: false });
+    try {
+      localStorage.removeItem("sika:notified");
+    } catch {}
+    ui.ob = null;
+    location.replace("#/bienvenue");
+    render();
+  },
   onChange: () => {
     // Session retrouvée pendant que l'accueil s'affiche (avant toute saisie) : on entre directement.
     if (cloud.user && location.hash === "#/bienvenue" && (!ui.ob || ui.ob.step === "choice")) {

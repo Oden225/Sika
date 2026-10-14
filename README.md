@@ -88,6 +88,16 @@ possible) et une copie est envoyée au compte 1,5 s après chaque modification. 
 version la plus récente l'emporte. À la première connexion d'un téléphone qui a déjà des données,
 Sika demande lesquelles garder.
 
+## Sécurité
+
+- Toute donnée qui entre (fichier importé, copie du compte, stockage du téléphone) est
+  reconstruite champ par champ et vérifiée (`normalize` dans `js/store.js`) avant tout affichage.
+- Déconnexion : les dernières modifications sont envoyées au compte, puis les données sont
+  effacées du téléphone (utile sur un téléphone partagé).
+- Export CSV : les valeurs qui ressemblent à une formule Excel sont neutralisées.
+- Supabase : règles d'accès par ligne (RLS), chacun ne voit que ses données ; seule la clé
+  publique « anon » est dans le code.
+
 ## Tests
 
 ```bash
