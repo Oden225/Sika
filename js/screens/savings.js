@@ -1,6 +1,7 @@
 import * as calc from "../calc.js";
-import { esc, money, num, cur, pct, icon, bar, bigMoney, fmtDate, today, toast, $, $$ } from "../ui.js";
-import { openGoalSheet, openGoalMoveSheet } from "../sheets.js";
+import * as act from "../actions.js";
+import { esc, money, num, cur, pct, icon, bar, bigMoney, fmtDate, fmtShort, today, toast, toggle, $, $$ } from "../ui.js";
+import { openGoalSheet, openGoalMoveSheet, openGoalAutoSheet, suggestedGoalAmount } from "../sheets.js";
 import { notFound } from "./bills.js";
 
 function goalPlan(goal, now) {
@@ -56,7 +57,7 @@ export function savings(ctx) {
     <section class="block">
       <div class="block-head"><h2>Mes objectifs</h2><a class="pill" href="#/simulateur">Simulateur ${icon("next")}</a></div>
       ${state.goals.length
-        ? `<div class="goal-list">${state.goals.map((g) => goalCard(g, now)).join("")}</div>`
+        ? `<div class="goal-list">${state.goals.map((g) => goalCard(g, now, act.goalRule(state, g.id))).join("")}</div>`
         : `<div class="empty glass"><p>Commencez par un <b>fonds d'urgence</b> (3 à 6 mois de dépenses), puis vos projets : terrain, rentrée scolaire, commerce…</p><button class="btn primary" data-new>${icon("plus")} Créer un objectif</button></div>`}
     </section>`,
     bind(root) {
@@ -72,14 +73,16 @@ export function savings(ctx) {
   };
 }
 
-function goalCard(g, now) {
+const PER = { weekly: "semaine", monthly: "mois" };
+
+function goalCard(g, now, rule) {
   const plan = goalPlan(g, now);
   const badge = plan.done ? `<span class="badge ok">Atteint 🎉</span>` : plan.late ? `<span class="badge late">Échéance dépassée</span>` : `<span class="badge soft">${plan.months} mois</span>`;
   return `
     <a class="goal-card glass" href="#/objectif/${g.id}">
       <div class="goal-top"><span class="goal-emoji">${esc(g.icon || "🎯")}</span><div class="lr-main"><b>${esc(g.name)}</b><small>Avant le ${fmtDate(g.deadline)}</small></div>${badge}</div>
       ${bar(plan.progress, plan.done ? "ok" : "")}
-      <div class="goal-bottom"><span><b>${money(g.saved)}</b> / ${money(g.target)}</span><span>${plan.done ? "" : `<b>${money(plan.monthly)}</b> / mois`}</span></div>
+      <div class="goal-bottom"><span><b>${money(g.saved)}</b> / ${money(g.target)}</span><span>${plan.done ? "" : rule && !rule.paused ? `🔁 <b>${money(rule.amount)}</b> / ${PER[rule.frequency] || "mois"}` : `<b>${money(plan.monthly)}</b> / mois`}</span></div>
     </a>`;
 }
 
@@ -92,6 +95,7 @@ export function goalDetail(ctx, id) {
   const history = state.transactions.filter((t) => t.goalId === goal.id).sort((a, b) => b.date.localeCompare(a.date));
   const weekly = plan.monthly / (52 / 12);
   const daily = plan.monthly / 30;
+  const rule = act.goalRule(state, goal.id);
 
   return {
     html: `
@@ -113,6 +117,7 @@ export function goalDetail(ctx, id) {
       <div class="stat glass"><span class="eyebrow">${icon("target")} Reste à épargner</span><b>${money(Math.max(0, goal.target - goal.saved))}</b><small>${pct(plan.progress)} atteint</small></div>
       <div class="stat glass"><span class="eyebrow">${icon("list")} Versements</span><b>${history.filter((t) => t.type === "expense").length}</b><small>enregistrés</small></div>
     </section>
+    ${autoCard(goal, rule, plan, now)}
     <section class="block">
       <div class="block-head"><h2>Historique</h2></div>
       ${history.length
@@ -129,9 +134,26 @@ export function goalDetail(ctx, id) {
       $("[data-add]", root).addEventListener("click", () => openGoalMoveSheet(ctx, goal, 1));
       $("[data-add2]", root).addEventListener("click", () => openGoalMoveSheet(ctx, goal, 1));
       $("[data-withdraw]", root).addEventListener("click", () => openGoalMoveSheet(ctx, goal, -1));
+      root.querySelectorAll("[data-auto]").forEach((b) => b.addEventListener("click", () => openGoalAutoSheet(ctx, goal)));
+      $("[name=autoOn]", root)?.addEventListener("change", (e) => {
+        if (e.target.checked) {
+          // Reprise : pas de rattrapage des échéances tombées pendant la pause.
+          rule.paused = false;
+          rule.pausedReason = undefined;
+          const missed = calc.occurrencesBetween(rule, rule.lastRun, calc.addDays(today(), -1));
+          if (missed.length) rule.lastRun = missed.at(-1);
+          act.applyRecurring(state, today());
+          toast("Versement automatique repris");
+        } else {
+          rule.paused = true;
+          toast("Versement automatique en pause");
+        }
+        ctx.commit();
+      });
       $("[data-delete]", root).addEventListener("click", () => {
-        if (!confirm(`Supprimer l'objectif « ${goal.name} » ? Les transactions déjà enregistrées sont conservées.`)) return;
+        if (!confirm(`Supprimer l'objectif « ${goal.name} » ?${rule ? " Son versement automatique sera aussi arrêté." : ""} Les transactions déjà enregistrées sont conservées.`)) return;
         state.goals = state.goals.filter((g) => g !== goal);
+        state.recurring = state.recurring.filter((r) => r.goalId !== goal.id);
         ctx.commit();
         ctx.navigate("#/epargne");
       });
@@ -209,3 +231,29 @@ export function simulator(ctx) {
   };
 }
 
+
+/** Carte « Versement automatique » de la fiche objectif. */
+function autoCard(goal, rule, plan, now) {
+  if (!rule) {
+    if (plan.done) return "";
+    return `
+    <button class="auto-cta glass" data-auto>
+      <span class="t-ico">🔁</span>
+      <span class="lr-main"><b>Programmer un versement automatique</b><small>Par exemple ${money(suggestedGoalAmount(goal))} chaque mois, mis de côté le jour du salaire</small></span>
+      ${icon("next", "chev")}
+    </button>`;
+  }
+  const next = rule.paused ? null : calc.nextOccurrence(rule, rule.lastRun && rule.lastRun >= now ? rule.lastRun : calc.addDays(now, -1));
+  const status = rule.paused
+    ? rule.pausedReason === "goal_reached" ? "En pause : objectif atteint 🎉" : "En pause"
+    : `${money(rule.amount)} par ${PER[rule.frequency] || "mois"}${next ? ` · prochain le ${fmtShort(next)}` : ""}${rule.auto === false ? " · à confirmer" : ""}`;
+  return `
+    <section class="toggles">
+      <div class="toggle-row glass">
+        <span class="t-ico">🔁</span>
+        <div><b>Versement automatique</b><small>${status}</small></div>
+        ${toggle("autoOn", !rule.paused, "Versement automatique actif")}
+      </div>
+      <button class="link-muted" data-auto>${icon("edit")} Modifier le montant ou la date</button>
+    </section>`;
+}

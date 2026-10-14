@@ -14,9 +14,39 @@ export function addTransaction(state, tx) {
 export function applyRecurring(state, today) {
   const { transactions, rules } = calc.generateRecurring(state.recurring, today);
   state.recurring = rules;
-  for (const t of transactions) addTransaction(state, t);
-  return transactions.length;
+  let created = 0;
+  for (const t of transactions) {
+    if (t.goalId) {
+      const amount = creditGoal(state, t.goalId, t.recurringId, t.amount);
+      if (!amount) continue;
+      t.amount = amount;
+    }
+    addTransaction(state, t);
+    created++;
+  }
+  return created;
 }
+
+/**
+ * Versement programmé vers un objectif : ajoute au plus ce qui manque pour
+ * l'atteindre et renvoie le montant versé (0 si l'objectif est déjà atteint ou
+ * supprimé). Une fois l'objectif atteint, le versement se met en pause.
+ */
+export function creditGoal(state, goalId, ruleId, amount) {
+  const goal = state.goals.find((g) => g.id === goalId);
+  const rule = state.recurring.find((r) => r.id === ruleId);
+  const remaining = goal ? Math.max(0, goal.target - goal.saved) : 0;
+  const paid = Math.min(amount, remaining);
+  if (goal) goal.saved += paid;
+  if (rule && (!goal || goal.saved >= goal.target)) {
+    rule.paused = true;
+    rule.pausedReason = goal ? "goal_reached" : "goal_deleted";
+  }
+  return paid;
+}
+
+/** Versement programmé (règle) relié à un objectif, s'il existe. */
+export const goalRule = (state, goalId) => state.recurring.find((r) => r.goalId === goalId);
 
 /** Échéance à régler en priorité : la plus ancienne en attente, sinon la prochaine. */
 export function occurrenceToPay(rule, today) {
@@ -30,16 +60,20 @@ export function occurrenceToPay(rule, today) {
  * devient l'estimation des prochaines échéances.
  */
 export function payRule(state, rule, { amount, date, occurrence, note }) {
-  addTransaction(state, {
+  if (rule.goalId) amount = creditGoal(state, rule.goalId, rule.id, amount);
+  if (!rule.lastRun || occurrence > rule.lastRun) rule.lastRun = occurrence;
+  if (!amount) return null;
+  const tx = addTransaction(state, {
     type: rule.type,
     amount,
     category: rule.category,
     date,
     note: note || rule.note,
     recurringId: rule.id,
+    ...(rule.goalId ? { goalId: rule.goalId } : {}),
   });
-  if (!rule.lastRun || occurrence > rule.lastRun) rule.lastRun = occurrence;
   if (rule.variable) rule.amount = amount;
+  return tx;
 }
 
 /** Passe une échéance sans paiement. */

@@ -389,9 +389,8 @@ export function openPaySheet(ctx, rule, occurrence = act.occurrenceToPay(rule, t
         e.preventDefault();
         const amount = readAmount(form.amount.value);
         if (!(amount > 0)) return shakeField(form.amount, "Indiquez un montant");
-        act.payRule(ctx.state, rule, { amount, date: form.date.value || today(), occurrence });
-        const last = ctx.state.transactions.at(-1);
-        last.method = radio(form, "method") || "";
+        const tx = act.payRule(ctx.state, rule, { amount, date: form.date.value || today(), occurrence });
+        if (tx) tx.method = radio(form, "method") || "";
         ctx.commit();
         closeSheet();
         toast(isIncome ? "Rentrée enregistrée" : "Paiement enregistré");
@@ -451,6 +450,95 @@ export function openGoalSheet(ctx, existing = null) {
         ctx.commit();
         closeSheet();
         toast(existing ? "Objectif modifié" : "Objectif créé");
+      });
+    },
+  );
+}
+
+/** Montant mensuel conseillé pour finir l'objectif à temps, arrondi aux 500 F supérieurs. */
+export function suggestedGoalAmount(goal, frequency = "monthly", now = today()) {
+  const months = calc.monthsBetween(now, goal.deadline);
+  const monthly = calc.monthlyContribution(goal.target, goal.saved, months, goal.rate || 0);
+  const perPeriod = frequency === "weekly" ? (monthly * 12) / 52 : monthly;
+  return Math.max(500, Math.ceil(perPeriod / 500) * 500);
+}
+
+/** Prochain jour de salaire (si un salaire est programmé), sinon aujourd'hui. */
+function nextPayday(ctx) {
+  const salary = ctx.state.recurring.find((r) => r.category === "salaire" && !r.paused);
+  const next = salary && calc.nextOccurrence(salary, calc.addDays(today(), -1));
+  return next ? { date: next, salary: true } : { date: today(), salary: false };
+}
+
+/** Programmer (ou modifier) le versement automatique vers un objectif. */
+export function openGoalAutoSheet(ctx, goal) {
+  const existing = act.goalRule(ctx.state, goal.id);
+  const payday = nextPayday(ctx);
+  const freq = existing?.frequency || "monthly";
+  const amount = existing?.amount || suggestedGoalAmount(goal, freq);
+  const start = existing?.start || payday.date;
+  openSheet(
+    existing ? "Modifier le versement" : "Versement automatique",
+    `<div class="pay-head"><span class="goal-emoji">${esc(goal.icon || "🎯")}</span><div><b>${esc(goal.name)}</b><small>${money(goal.saved)} sur ${money(goal.target)}</small></div></div>
+     <form class="form" novalidate>
+       ${segmented("frequency", [["monthly", "Chaque mois"], ["weekly", "Chaque semaine"]], freq)}
+       ${amountField(amount, "Montant à mettre de côté")}
+       <p class="muted" data-hint></p>
+       <label class="field"><span>${existing ? "Première échéance" : "À partir du"}</span><input name="start" type="date" value="${start}"></label>
+       ${!existing && payday.salary ? `<p class="muted">📅 Date proposée : le jour de votre salaire, pour épargner avant de dépenser.</p>` : ""}
+       <div class="toggle-row"><div><b>Enregistrer automatiquement</b><small>Désactivez si vos revenus sont irréguliers : un rappel vous demandera de confirmer chaque versement</small></div>${toggle("auto", existing ? existing.auto !== false : true, "Enregistrer automatiquement")}</div>
+       <p class="muted">Le versement s'arrête tout seul quand l'objectif est atteint.</p>
+       <div class="form-actions">
+         ${existing ? `<button type="button" class="btn danger-soft" data-stop>${icon("close")} Arrêter</button>` : ""}
+         <button class="btn primary">${existing ? "Enregistrer" : "Programmer"}</button>
+       </div>
+     </form>`,
+    (root) => {
+      const form = $("form", root);
+      liveAmount(form.amount);
+      const hint = () => {
+        const f = radio(form, "frequency");
+        $("[data-hint]", root).textContent = `Conseillé pour finir avant le ${fmtDate(goal.deadline)} : ${money(suggestedGoalAmount(goal, f))} ${f === "weekly" ? "par semaine" : "par mois"}.`;
+      };
+      $$("[name=frequency]", form).forEach((r) =>
+        r.addEventListener("change", () => {
+          form.amount.value = num(suggestedGoalAmount(goal, r.value));
+          hint();
+        }),
+      );
+      hint();
+      $("[data-stop]", root)?.addEventListener("click", () => {
+        if (!confirm("Arrêter le versement automatique ? Les versements déjà faits restent dans l'objectif.")) return;
+        ctx.state.recurring = ctx.state.recurring.filter((r) => r !== existing);
+        ctx.commit();
+        closeSheet();
+        toast("Versement automatique arrêté");
+      });
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const value = readAmount(form.amount.value);
+        if (!(value > 0)) return shakeField(form.amount, "Indiquez un montant");
+        const data = {
+          amount: value,
+          frequency: radio(form, "frequency"),
+          start: form.start.value || today(),
+          auto: form.auto.checked,
+          note: `Épargne : ${goal.name}`,
+        };
+        if (existing) {
+          const restart = data.start !== existing.start || data.frequency !== existing.frequency;
+          Object.assign(existing, data, { paused: false, pausedReason: undefined });
+          if (restart) existing.lastRun = lastPast(existing);
+        } else {
+          const rule = { id: uid(), type: "expense", category: "epargne", goalId: goal.id, end: null, variable: false, remindDays: 1, paused: false, created: today(), lastRun: null, ...data };
+          // Pas de rattrapage des échéances passées.
+          rule.lastRun = lastPast(rule);
+          ctx.state.recurring.push(rule);
+        }
+        const created = act.applyRecurring(ctx.state, today());
+        ctx.commit();
+        closeSheet();
+        toast(created ? `Programmé — ${money(value)} versés aujourd'hui` : `Versement programmé : ${money(value)} ${data.frequency === "weekly" ? "par semaine" : "par mois"}`);
       });
     },
   );

@@ -72,6 +72,7 @@ export function billDetail(ctx, id) {
   const history = state.transactions.filter((t) => t.recurringId === rule.id).sort((a, b) => b.date.localeCompare(a.date));
   const total = history.reduce((s, t) => s + t.amount, 0);
   const isIncome = rule.type === "income";
+  const goal = rule.goalId ? state.goals.find((g) => g.id === rule.goalId) : null;
   const per = { weekly: "/ semaine", monthly: "/ mois", bimonthly: "/ 2 mois", quarterly: "/ trimestre", yearly: "/ an" }[rule.frequency];
   const inLabel = next ? relative(next, now) : "";
 
@@ -90,7 +91,8 @@ export function billDetail(ctx, id) {
       </div>
       <div class="detail-id">
         ${catIcon(rule.category, "xl")}
-        <div><h2>${esc(rule.note)}</h2><small>${esc(c.label)} · ${freqLabel(rule.frequency)}${rule.variable ? " · variable" : ""}</small></div>
+        <div><h2>${esc(rule.note)}</h2><small>${esc(c.label)} · ${freqLabel(rule.frequency)}${rule.variable ? " · variable" : ""}</small>
+          ${goal ? `<a class="goal-link" href="#/objectif/${goal.id}">${esc(goal.icon || "🎯")} Vers l'objectif « ${esc(goal.name)} » ${icon("next")}</a>` : ""}</div>
       </div>
       <div class="detail-amount">
         ${rule.variable ? `<span class="approx">≈</span>` : ""}<span class="big-money xl"><span class="n">${num(rule.amount)}</span><span class="cur">${cur()} ${per}</span></span>

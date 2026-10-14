@@ -668,3 +668,8 @@ body.onboarding .view { padding: 0 0 calc(24px + env(safe-area-inset-bottom)); m
 @keyframes wave-in { from { transform: translateY(-40px); border-radius: 0 0 62% 38% / 0 0 160px 120px; } }
 @keyframes card-up { from { opacity: 0; transform: translateY(30px); } }
 @keyframes coin-float { 0%, 100% { transform: translateY(0) rotate(-4deg); } 50% { transform: translateY(-6px) rotate(4deg); } }
+.auto-cta { display: flex; align-items: center; gap: 12px; width: 100%; padding: 14px; border-radius: var(--radius-sm); text-align: left; margin-bottom: 18px; border: 1px dashed color-mix(in srgb, var(--accent) 45%, transparent); }
+.auto-cta .lr-main small, .auto-cta .lr-main b { white-space: normal; }
+.toggles .link-muted { padding: 4px; }
+.goal-link { display: inline-flex; align-items: center; gap: 4px; margin-top: 6px; font-size: .8rem; font-weight: 700; color: var(--accent); }
+.goal-link .ico { width: 14px; height: 14px; }

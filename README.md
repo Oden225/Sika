@@ -33,6 +33,10 @@ synchroniser les données avec un **compte en ligne** (connexion par code reçu 
   - *montant variable* (CIE, SODECI) : un rappel demande de confirmer le montant de la facture ;
   - modèles en un geste : salaire (fin du mois), loyer, CIE, SODECI, Canal+, internet, forfait, scolarité ;
   - fiche détaillée : prochaine échéance, total payé, rappel (J-0 à J-7), pause, arrêt, historique.
+- **Versement automatique vers un objectif** : depuis la fiche d'un objectif, montant conseillé
+  pour finir à temps, chaque mois ou chaque semaine, proposé le jour du salaire ; automatique ou
+  à confirmer ; le dernier versement est ajusté et le versement se met en pause une fois
+  l'objectif atteint.
 - **Revenus irréguliers** : à chaque revenu ajouté, Sika propose d'en épargner un pourcentage
   (10 % par défaut) vers un objectif ; les objectifs sont comparés au **revenu moyen des 3 derniers mois**.
 - **Mobile Money** (Wave, Orange Money, MTN MoMo, Moov Money) : envoi, retrait, dépôt, avec frais

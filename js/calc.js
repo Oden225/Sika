@@ -176,6 +176,7 @@ export function generateRecurring(rules, today) {
         date,
         note: rule.note,
         recurringId: rule.id,
+        ...(rule.goalId ? { goalId: rule.goalId } : {}),
       });
     }
     return { ...rule, lastRun: dates[dates.length - 1] };
