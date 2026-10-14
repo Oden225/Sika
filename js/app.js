@@ -1,7 +1,7 @@
 import * as calc from "./calc.js";
 import * as act from "./actions.js";
-import { load, save } from "./store.js";
-import { cloud, initCloud } from "./cloud.js";
+import { load, save, hasData } from "./store.js";
+import { cloud, initCloud, hasStoredSession } from "./cloud.js";
 import { $, $$, setCurrency, today, closeSheet, countUp } from "./ui.js";
 import { applyTheme, themeOf } from "./theme.js";
 import { openAddSheet } from "./sheets.js";
@@ -13,6 +13,7 @@ import { tontines, tontineDetail, debts, debtDetail } from "./screens/community.
 import { analytics, budgets } from "./screens/analytics.js";
 import { more, transactions, reminders, settings } from "./screens/more.js";
 import { account } from "./screens/account.js";
+import { welcome, needsOnboarding } from "./screens/welcome.js";
 
 let state = load();
 const thisMonth = calc.monthKey(new Date());
@@ -79,6 +80,7 @@ const routes = [
   [/^#\/rappels$/, reminders, "home"],
   [/^#\/reglages$/, settings, "more"],
   [/^#\/compte$/, account, "more"],
+  [/^#\/bienvenue$/, welcome, "none"],
 ];
 
 const view = $("#view");
@@ -90,6 +92,16 @@ function render() {
   // Pendant l'animation du code de vérification, on ne redessine pas l'écran.
   if (ui.holdRender && hash === lastHash) return;
   ui.holdRender = false;
+  // Premier lancement : écran de bienvenue (créer un compte / se connecter).
+  if (hash !== "#/bienvenue" && needsOnboarding(state, cloud, hasData, hasStoredSession)) {
+    location.replace("#/bienvenue");
+    return;
+  }
+  // Accueil plus nécessaire (déjà fait, connecté, ou données présentes) et aucune saisie en cours.
+  if (hash === "#/bienvenue" && (state.settings.onboarded || (!ui.ob && !needsOnboarding(state, cloud, hasData, hasStoredSession)))) {
+    location.replace("#/");
+    return;
+  }
   const [re, screen, tab] = routes.find(([r]) => r.test(hash)) || routes[0];
   const params = hash.match(re)?.slice(1) || [];
   const { html, bind } = screen(ctx, ...params);
@@ -98,6 +110,7 @@ function render() {
   view.innerHTML = html;
   bind?.(view);
   $$(".tabbar [data-tab]").forEach((a) => a.classList.toggle("active", a.dataset.tab === tab));
+  document.body.classList.toggle("onboarding", tab === "none");
   window.scrollTo(0, sameRoute ? scroll : 0);
   if (!sameRoute) {
     closeSheet();
@@ -190,6 +203,13 @@ initCloud({
   getState: () => state,
   applyRemote: (data) => replaceState(data, { fromCloud: true }),
   onChange: () => {
+    // Session retrouvée pendant que l'accueil s'affiche (avant toute saisie) : on entre directement.
+    if (cloud.user && location.hash === "#/bienvenue" && (!ui.ob || ui.ob.step === "choice")) {
+      state.settings.onboarded = true;
+      save(state);
+      location.replace("#/");
+      return;
+    }
     // Rafraîchit les écrans qui affichent l'état du compte.
     if (/^#\/(plus|compte|reglages)/.test(location.hash)) render();
   },

@@ -25,6 +25,7 @@ export const cloud = {
   error: null,
   sendCode,
   verify,
+  updateProfile,
   signOut,
   pull,
   syncNow: () => pull(),
@@ -70,10 +71,39 @@ export async function initCloud(h) {
 
 // ---------- Connexion par code e-mail ----------
 
-async function sendCode(email) {
+/**
+ * Envoie le code de connexion. `create: false` (« J'ai déjà un compte ») refuse
+ * les adresses inconnues : l'erreur porte alors `code = "no_account"`.
+ */
+async function sendCode(email, { create = true } = {}) {
   const c = await client();
-  const { error } = await c.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
-  if (error) throw error;
+  const { error } = await c.auth.signInWithOtp({ email, options: { shouldCreateUser: create } });
+  if (error) {
+    if (!create && /signups? not allowed|not allowed for otp|user not found/i.test(error.message)) error.code = "no_account";
+    throw error;
+  }
+}
+
+/** Enregistre prénom et nom dans le compte (visibles dans le tableau de bord Supabase). */
+async function updateProfile(firstName, lastName) {
+  if (!cloud.user) return;
+  try {
+    const c = await client();
+    await c.auth.updateUser({ data: { first_name: firstName, last_name: lastName, full_name: `${firstName} ${lastName}`.trim() } });
+  } catch {
+    // Facultatif : le nom reste de toute façon dans les données synchronisées.
+  }
+}
+
+/** Une session est-elle déjà enregistrée sur ce téléphone ? (lecture immédiate, sans réseau) */
+export function hasStoredSession() {
+  if (!cloud.configured) return false;
+  try {
+    const ref = new URL(SUPABASE_URL).hostname.split(".")[0];
+    return Boolean(localStorage.getItem(`sb-${ref}-auth-token`));
+  } catch {
+    return false;
+  }
 }
 
 /** Vérifie le code reçu : true, false (mauvais code) ou un message d'erreur. */

@@ -21,6 +21,32 @@ const OTP_HTML = `
   </section>
   <button class="link-muted" data-change-email>Changer d'adresse e-mail</button>`;
 
+/**
+ * Affiche la saisie animée du code dans `slot` et vérifie le code auprès du
+ * compte. Pendant l'animation, l'écran n'est pas redessiné (holdRender).
+ */
+export function mountOtp(ctx, slot, email, { onSuccess, onChangeEmail, create = true }) {
+  const { cloud } = ctx;
+  slot.innerHTML = OTP_HTML;
+  ctx.ui.holdRender = true;
+  const masked = email.replace(/^(.{2}).*(@.*)$/, "$1•••$2");
+  const otp = createOtpDeck(slot.querySelector(".auth"), {
+    length: OTP_LENGTH,
+    texts: { sub: (n) => `Code à ${n} chiffres envoyé à <b>${esc(masked)}</b>. Regardez aussi vos spams.` },
+    verify: (code) => cloud.verify(email, code),
+    onResend: () => cloud.sendCode(email, { create }).catch(() => toast("Envoi impossible, réessayez")),
+    onSuccess: () => {
+      ctx.ui.holdRender = false;
+      onSuccess();
+    },
+  });
+  otp.focus();
+  $("[data-change-email]", slot).addEventListener("click", () => {
+    ctx.ui.holdRender = false;
+    onChangeEmail();
+  });
+}
+
 export function account(ctx) {
   const { cloud } = ctx;
   const header = `
@@ -99,27 +125,17 @@ export function account(ctx) {
       const showOtp = (email) => {
         $("[data-step-email]", root).hidden = true;
         slot.hidden = false;
-        slot.innerHTML = OTP_HTML;
-        ctx.ui.holdRender = true;
-        const masked = email.replace(/^(.{2}).*(@.*)$/, "$1•••$2");
-        const otp = createOtpDeck(slot.querySelector(".auth"), {
-          length: OTP_LENGTH,
-          texts: { sub: (n) => `Code à ${n} chiffres envoyé à <b>${esc(masked)}</b>. Regardez aussi vos spams.` },
-          verify: (code) => cloud.verify(email, code),
-          onResend: () => cloud.sendCode(email).catch(() => toast("Envoi impossible, réessayez")),
+        mountOtp(ctx, slot, email, {
           onSuccess: () => {
             ctx.ui.pendingEmail = "";
-            ctx.ui.holdRender = false;
             ctx.navigate("#/plus");
             toast("Bienvenue ! Vos données sont synchronisées.");
           },
-        });
-        otp.focus();
-        $("[data-change-email]", slot).addEventListener("click", () => {
-          ctx.ui.holdRender = false;
-          slot.hidden = true;
-          $("[data-step-email]", root).hidden = false;
-          form.email.focus();
+          onChangeEmail: () => {
+            slot.hidden = true;
+            $("[data-step-email]", root).hidden = false;
+            form.email.focus();
+          },
         });
       };
       form.addEventListener("submit", async (e) => {

@@ -9,7 +9,8 @@ import { bindTxRows, txRow, monthOptions } from "./home.js";
 
 export function more(ctx) {
   const { state, cloud } = ctx;
-  const name = state.settings.name?.trim();
+  const st = state.settings;
+  const name = [st.firstName || st.name, st.lastName].filter(Boolean).join(" ").trim();
   const { owedToMe, iOwe } = calc.debtTotals(state.debts);
   const item = (href, ico, color, title, sub) => `
     <a class="list-row glass menu" href="${href}"><span class="qi" style="--q:${color}">${icon(ico)}</span>
@@ -134,7 +135,10 @@ export function settings(ctx) {
     <form class="glass card-pad form" data-profile>
       <h2>Profil</h2>
       <div class="row-2">
-        <label class="field"><span>Votre prénom</span><input name="name" maxlength="30" value="${esc(s.name)}" placeholder="ex. Aya"></label>
+        <label class="field"><span>Prénom</span><input name="first" autocomplete="given-name" maxlength="30" value="${esc(s.firstName || s.name)}" placeholder="ex. Aya"></label>
+        <label class="field"><span>Nom</span><input name="last" autocomplete="family-name" maxlength="40" value="${esc(s.lastName || "")}" placeholder="ex. Koné"></label>
+      </div>
+      <div class="row-2">
         <label class="field"><span>Devise</span><input name="currency" maxlength="6" value="${esc(s.currency)}"></label>
       </div>
       <button class="btn primary">Enregistrer</button>
@@ -173,7 +177,10 @@ export function settings(ctx) {
       bindAppearance(ctx, root);
       $("[data-profile]", root).addEventListener("submit", (e) => {
         e.preventDefault();
-        s.name = e.target.name.value.trim();
+        s.firstName = e.target.first.value.trim();
+        s.lastName = e.target.last.value.trim();
+        s.name = s.firstName;
+        ctx.cloud.updateProfile(s.firstName, s.lastName);
         s.currency = e.target.currency.value.trim() || "FCFA";
         ctx.commit();
         toast("Profil enregistré");
@@ -221,7 +228,7 @@ export function settings(ctx) {
       });
       $("[data-wipe]", root).addEventListener("click", () => {
         if (!confirm(`Effacer toutes vos données${ctx.cloud.user ? " (sur ce téléphone ET sur votre compte)" : ""} ? Cette action est irréversible.`)) return;
-        ctx.replaceState(normalize({ settings: { name: s.name, currency: s.currency } }));
+        ctx.replaceState(normalize({ settings: { name: s.name, firstName: s.firstName, lastName: s.lastName, currency: s.currency, theme: s.theme, onboarded: true } }));
         toast("Données effacées");
       });
     },

@@ -19,6 +19,11 @@ synchroniser les données avec un **compte en ligne** (connexion par code reçu 
 
 ## Fonctionnalités
 
+- **Premier lancement** : après l'animation d'ouverture, choix entre **Créer un compte**
+  (prénom et nom, e-mail, code) et **J'ai déjà un compte** (e-mail, code : les données
+  reviennent automatiquement). Un lien discret permet de continuer sans compte. Le prénom et
+  le nom sont enregistrés dans le profil (synchronisé) et dans le compte Supabase.
+
 - **Catégories locales** : loyer, électricité (CIE), eau (SODECI), TV / internet, crédit & data,
   marché, transport (gbaka, woro-woro…), scolarité, famille / village, cérémonies, tontine, frais
   Mobile Money…

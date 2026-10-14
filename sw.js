@@ -2,7 +2,7 @@
 // Stratégie « réseau d'abord » : on sert toujours la dernière version en ligne,
 // et la copie en cache seulement si le réseau est indisponible.
 
-const CACHE = "sika-v7";
+const CACHE = "sika-v8";
 const SHELL = [
   "./",
   "index.html",
@@ -30,6 +30,7 @@ const SHELL = [
   "js/screens/home.js",
   "js/screens/more.js",
   "js/screens/savings.js",
+  "js/screens/welcome.js",
 ];
 
 self.addEventListener("install", (e) => {

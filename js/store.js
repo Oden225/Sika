@@ -13,6 +13,9 @@ export function emptyState() {
     settings: {
       currency: "FCFA",
       name: "",
+      firstName: "",
+      lastName: "",
+      onboarded: false,
       savePercent: 10,
       goalForSavings: null,
       fees: null,

@@ -631,3 +631,40 @@ body.sheet-open #toast.show { transform: translate(-50%, 0); }
 .appearance h3 { font-size: .8rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin: 4px 0 8px; }
 .appearance .toggle-row { padding: 10px 0; border-radius: 0; border-top: 1px solid var(--line); }
 .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ---------- Bienvenue (premier lancement) ---------- */
+body.onboarding .tabbar { display: none; }
+body.onboarding .view { padding: 0 0 calc(24px + env(safe-area-inset-bottom)); max-width: none; }
+.welcome { min-height: 100vh; display: flex; flex-direction: column; }
+.welcome-wave {
+  position: relative; color: #fff; text-align: center;
+  padding: calc(44px + env(safe-area-inset-top)) 24px 64px;
+  /* Le rideau de l'ouverture, arrêté en bandeau courbe */
+  background:
+    radial-gradient(70% 60% at 50% 30%, color-mix(in srgb, var(--accent) 40%, transparent), transparent 70%),
+    radial-gradient(50% 40% at 85% 90%, rgba(249, 199, 79, .14), transparent 70%),
+    #07070f;
+  border-radius: 0 0 62% 38% / 0 0 64px 40px;
+  animation: wave-in .7s cubic-bezier(.2, .8, .2, 1) both;
+}
+.welcome-back { position: absolute; left: 16px; top: calc(14px + env(safe-area-inset-top)); width: 42px; height: 42px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, .18); background: rgba(255, 255, 255, .08); color: #fff; display: grid; place-items: center; }
+.welcome-brand { display: grid; justify-items: center; gap: 12px; }
+.welcome-coin { width: 72px; height: 72px; filter: drop-shadow(0 14px 24px rgba(249, 199, 79, .35)); animation: coin-float 4s ease-in-out infinite; }
+.welcome-word { margin: 0; font-weight: 600; font-size: 1.7rem; letter-spacing: .42em; padding-left: .42em; }
+.welcome-tag { margin: 6px 0 0; color: rgba(255, 255, 255, .62); font-size: .82rem; }
+.welcome-card {
+  position: relative; width: min(448px, calc(100% - 32px)); margin: 18px auto 0; border-radius: 28px; padding: 22px 18px;
+  display: grid; gap: 14px; animation: card-up .6s .15s cubic-bezier(.2, .8, .2, 1) both;
+}
+.welcome-card h1 { font-size: 1.35rem; font-weight: 800; letter-spacing: -.01em; }
+.welcome-card .muted { margin-top: -6px; }
+.welcome-actions { display: grid; gap: 10px; margin-top: 4px; }
+.welcome-card .link-muted { padding: 6px; }
+.welcome-steps { display: flex; gap: 6px; }
+.welcome-steps i { flex: 1; height: 4px; border-radius: 99px; background: var(--line); }
+.welcome-steps i.on { background: var(--accent-grad); }
+.welcome .otp-slot .auth { background: transparent; border: 0; box-shadow: none; padding: 4px 0 0; }
+.welcome .otp-slot .grab { display: none; }
+@keyframes wave-in { from { transform: translateY(-40px); border-radius: 0 0 62% 38% / 0 0 160px 120px; } }
+@keyframes card-up { from { opacity: 0; transform: translateY(30px); } }
+@keyframes coin-float { 0%, 100% { transform: translateY(0) rotate(-4deg); } 50% { transform: translateY(-6px) rotate(4deg); } }
